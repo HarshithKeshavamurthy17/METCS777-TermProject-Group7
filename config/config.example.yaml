@@ -1,0 +1,49 @@
+spark:
+  app_name: "Wikipedia Clickstream Anomaly Detection"
+  master: "local[*]"  # Use "yarn" for cluster mode
+  executor_memory: "8g"
+  driver_memory: "4g"
+  executor_cores: 4
+  max_result_size: "2g"
+  
+data:
+  clickstream_base_url: "https://dumps.wikimedia.org/other/clickstream/"
+  months:
+    - "2023-09"
+    - "2023-10"
+    - "2023-11"
+    - "2023-12"
+    - "2024-01"
+    - "2024-02"
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  anomalies_dir: "data/anomalies"
+  min_transitions: 10  # Filter edges with n < this value
+  pageviews_api_base: "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article"
+  
+anomaly_detection:
+  traffic_spike:
+    z_score_threshold: 3.5
+    ratio_threshold: 10.0
+    min_baseline_months: 3
+    mad_epsilon: 0.01
+  clustering:
+    n_clusters: 50
+    distance_threshold_percentile: 95
+    max_iterations: 100
+    seed: 42
+  mix_shift:
+    js_divergence_threshold: 0.3
+    min_referrers: 3
+    top_referrer_change_threshold: 0.2  # 20% change in top referrer share
+    
+dashboard:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+  
+storage:
+  format: "parquet"  # or "delta"
+  partition_by: ["month"]
+  compression: "snappy"
+

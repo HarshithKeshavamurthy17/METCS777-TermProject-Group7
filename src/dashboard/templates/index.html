@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wikipedia Clickstream Anomaly Detection Dashboard</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+        
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .filters {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .filters h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group label {
+            font-weight: 500;
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .filter-group button {
+            padding: 0.5rem 1.5rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .filter-group button:hover {
+            background: #5568d3;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: #667eea;
+            color: white;
+        }
+        
+        th, td {
+            padding: 1rem;
+            text-align: left;
+        }
+        
+        tbody tr {
+            border-bottom: 1px solid #eee;
+        }
+        
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .anomaly-type {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .anomaly-type.traffic_spike {
+            background: #fee;
+            color: #c33;
+        }
+        
+        .anomaly-type.navigation_edge {
+            background: #eef;
+            color: #33c;
+        }
+        
+        .anomaly-type.mix_shift {
+            background: #efe;
+            color: #3c3;
+        }
+        
+        .confidence-bar {
+            height: 20px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #F44336);
+            transition: width 0.3s;
+        }
+        
+        .graph-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .graph-container h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        #network-graph {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Wikipedia Clickstream Anomaly Detection</h1>
+            <p>Interactive dashboard for exploring detected anomalies</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <h3>Total Anomalies</h3>
+                <div class="value" id="total-anomalies">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Traffic Spikes</h3>
+                <div class="value" id="traffic-spikes">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Navigation Edges</h3>
+                <div class="value" id="navigation-edges">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Mix Shifts</h3>
+                <div class="value" id="mix-shifts">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Confidence</h3>
+                <div class="value" id="avg-confidence">-</div>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <h2>Filters</h2>
+            <div class="filter-group">
+                <label>Month:</label>
+                <select id="filter-month">
+                    <option value="">All Months</option>
+                </select>
+                
+                <label>Anomaly Type:</label>
+                <select id="filter-type">
+                    <option value="">All Types</option>
+                    <option value="traffic_spike">Traffic Spike</option>
+                    <option value="navigation_edge">Navigation Edge</option>
+                    <option value="mix_shift">Mix Shift</option>
+                </select>
+                
+                <label>Min Confidence:</label>
+                <input type="number" id="filter-confidence" min="0" max="1" step="0.1" value="0.5">
+                
+                <button onclick="loadAnomalies()">Apply Filters</button>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Month</th>
+                        <th>From (prev)</th>
+                        <th>To (curr)</th>
+                        <th>Type</th>
+                        <th>Count (n)</th>
+                        <th>Deviation Ratio</th>
+                        <th>Confidence</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody id="anomalies-table">
+                    <tr>
+                        <td colspan="9" class="loading">Loading anomalies...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="graph-container">
+            <h2>Anomaly Network Graph</h2>
+            <div id="network-graph"></div>
+        </div>
+    </div>
+    
+    <script>
+        let anomaliesData = [];
+        
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/anomalies/stats');
+                const stats = await response.json();
+                
+                document.getElementById('total-anomalies').textContent = stats.total || 0;
+                document.getElementById('traffic-spikes').textContent = stats.by_type?.traffic_spike || 0;
+                document.getElementById('navigation-edges').textContent = stats.by_type?.navigation_edge || 0;
+                document.getElementById('mix-shifts').textContent = stats.by_type?.mix_shift || 0;
+                document.getElementById('avg-confidence').textContent = (stats.avg_confidence || 0).toFixed(2);
+                
+                // Populate month filter
+                const monthSelect = document.getElementById('filter-month');
+                Object.keys(stats.by_month || {}).forEach(month => {
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.textContent = month;
+                    monthSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        // Load anomalies
+        async function loadAnomalies() {
+            const month = document.getElementById('filter-month').value;
+            const type = document.getElementById('filter-type').value;
+            const confidence = document.getElementById('filter-confidence').value;
+            
+            const params = new URLSearchParams();
+            if (month) params.append('month', month);
+            if (type) params.append('anomaly_type', type);
+            if (confidence) params.append('min_confidence', confidence);
+            params.append('limit', '1000');
+            
+            try {
+                const response = await fetch(`/api/anomalies?${params}`);
+                const data = await response.json();
+                
+                anomaliesData = data.anomalies || [];
+                renderTable(anomaliesData);
+                renderGraph(month);
+            } catch (error) {
+                console.error('Error loading anomalies:', error);
+                document.getElementById('anomalies-table').innerHTML = 
+                    `<tr><td colspan="9" class="error">Error loading anomalies: ${error.message}</td></tr>`;
+            }
+        }
+        
+        // Render table
+        function renderTable(anomalies) {
+            const tbody = document.getElementById('anomalies-table');
+            
+            if (anomalies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="loading">No anomalies found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = anomalies.map(anomaly => `
+                <tr>
+                    <td>${anomaly.anomaly_id}</td>
+                    <td>${anomaly.month}</td>
+                    <td>${(anomaly.prev || '').substring(0, 30)}${(anomaly.prev || '').length > 30 ? '...' : ''}</td>
+                    <td>${(anomaly.curr || '').substring(0, 30)}${(anomaly.curr || '').length > 30 ? '...' : ''}</td>
+                    <td><span class="anomaly-type ${anomaly.anomaly_type}">${anomaly.anomaly_type}</span></td>
+                    <td>${anomaly.n || 0}</td>
+                    <td>${(anomaly.deviation_ratio || 0).toFixed(2)}</td>
+                    <td>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${(anomaly.confidence || 0) * 100}%"></div>
+                        </div>
+                        ${(anomaly.confidence || 0).toFixed(2)}
+                    </td>
+                    <td>${(anomaly.description || '').substring(0, 50)}${(anomaly.description || '').length > 50 ? '...' : ''}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Render network graph
+        async function renderGraph(month) {
+            const params = new URLSearchParams();
+            if (month) params.append('month', month);
+            params.append('limit', '100');
+            
+            try {
+                const response = await fetch(`/api/graph?${params}`);
+                const data = await response.json();
+                
+                const nodes = data.nodes || [];
+                const edges = data.edges || [];
+                
+                // Create Plotly network graph
+                const node_x = [];
+                const node_y = [];
+                const node_text = [];
+                const node_size = [];
+                
+                // Simple layout (in production, use force-directed layout)
+                nodes.forEach((node, i) => {
+                    const angle = (2 * Math.PI * i) / nodes.length;
+                    node_x.push(Math.cos(angle) * 10);
+                    node_y.push(Math.sin(angle) * 10);
+                    node_text.push(node.label);
+                    node_size.push(10);
+                });
+                
+                const edge_x = [];
+                const edge_y = [];
+                
+                edges.forEach(edge => {
+                    const sourceIdx = nodes.findIndex(n => n.id === edge.source);
+                    const targetIdx = nodes.findIndex(n => n.id === edge.target);
+                    
+                    if (sourceIdx >= 0 && targetIdx >= 0) {
+                        edge_x.push(node_x[sourceIdx], node_x[targetIdx], null);
+                        edge_y.push(node_y[sourceIdx], node_y[targetIdx], null);
+                    }
+                });
+                
+                const edge_trace = {
+                    x: edge_x,
+                    y: edge_y,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { width: 2, color: '#888' },
+                    hoverinfo: 'none'
+                };
+                
+                const node_trace = {
+                    x: node_x,
+                    y: node_y,
+                    mode: 'markers+text',
+                    type: 'scatter',
+                    text: node_text,
+                    textposition: 'middle center',
+                    marker: { size: node_size, color: '#667eea' },
+                    hoverinfo: 'text',
+                    hovertext: nodes.map(n => n.label)
+                };
+                
+                Plotly.newPlot('network-graph', [edge_trace, node_trace], {
+                    title: 'Anomaly Network Graph',
+                    showlegend: false,
+                    hovermode: 'closest',
+                    margin: { b: 20, l: 20, r: 20, t: 40 },
+                    xaxis: { showgrid: false, zeroline: false, showticklabels: false },
+                    yaxis: { showgrid: false, zeroline: false, showticklabels: false }
+                });
+            } catch (error) {
+                console.error('Error rendering graph:', error);
+                document.getElementById('network-graph').innerHTML = 
+                    `<div class="error">Error rendering graph: ${error.message}</div>`;
+            }
+        }
+        
+        // Initialize
+        loadStats();
+        loadAnomalies();
+    </script>
+</body>
+</html>
+

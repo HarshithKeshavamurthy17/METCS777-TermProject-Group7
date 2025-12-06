@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wikipedia Clickstream Anomaly Detection - Advanced Dashboard</title>
+    
+    <!-- Material UI CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@material-ui/core@4.12.4/dist/material-ui.min.css">
+    
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f5f5f5;
+            color: #212121;
+            line-height: 1.6;
+        }
+        
+        .app-bar {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .app-bar h1 {
+            font-size: 1.75rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .app-bar p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-card-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #757575;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card-icon {
+            color: #1976d2;
+            font-size: 1.5rem;
+        }
+        
+        .stat-card-value {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #212121;
+            line-height: 1;
+        }
+        
+        .stat-card-subtitle {
+            font-size: 0.875rem;
+            color: #757575;
+            margin-top: 0.5rem;
+        }
+        
+        .filters-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .filters-card h2 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: #212121;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group label {
+            font-weight: 500;
+            color: #424242;
+            font-size: 0.875rem;
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            padding: 0.625rem 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-family: 'Roboto', sans-serif;
+            transition: border-color 0.2s;
+        }
+        
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+        
+        .btn-primary {
+            padding: 0.625rem 1.5rem;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary:hover {
+            background: #1565c0;
+        }
+        
+        .table-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: #f5f5f5;
+        }
+        
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 500;
+            color: #424242;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #f5f5f5;
+            color: #212121;
+        }
+        
+        tbody tr {
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        
+        tbody tr:hover {
+            background: #f5f5f5;
+        }
+        
+        tbody tr.selected {
+            background: #e3f2fd;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-traffic-spike {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .badge-mix-shift {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .badge-navigation-edge {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .confidence-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 100px;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #ffc107, #f44336);
+            transition: width 0.3s;
+        }
+        
+        /* Explainability Panel */
+        .explainability-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 600px;
+            max-width: 90vw;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .explainability-panel.open {
+            transform: translateX(0);
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-header h2 {
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+        
+        .panel-content {
+            padding: 1.5rem;
+        }
+        
+        .panel-section {
+            margin-bottom: 2rem;
+        }
+        
+        .panel-section h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #424242;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .signal-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .chip {
+            padding: 0.5rem 1rem;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 16px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .explanation-box {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 4px;
+            border-left: 4px solid #1976d2;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+        
+        .overlay.show {
+            display: block;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #757575;
+        }
+        
+        @media (max-width: 768px) {
+            .explainability-panel {
+                width: 100vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-bar">
+        <div class="container">
+            <h1>🔍 Wikipedia Clickstream Anomaly Detection</h1>
+            <p>Advanced analytics dashboard with explainability and forecasting</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Total Anomalies</span>
+                    <span class="material-icons stat-card-icon">warning</span>
+                </div>
+                <div class="stat-card-value" id="total-anomalies">-</div>
+                <div class="stat-card-subtitle">Detected across all months</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Traffic Spikes</span>
+                    <span class="material-icons stat-card-icon">trending_up</span>
+                </div>
+                <div class="stat-card-value" id="traffic-spikes">-</div>
+                <div class="stat-card-subtitle">Sudden increases detected</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Mix Shifts</span>
+                    <span class="material-icons stat-card-icon">swap_horiz</span>
+                </div>
+                <div class="stat-card-value" id="mix-shifts">-</div>
+                <div class="stat-card-subtitle">Referrer changes detected</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Avg Confidence</span>
+                    <span class="material-icons stat-card-icon">assessment</span>
+                </div>
+                <div class="stat-card-value" id="avg-confidence">-</div>
+                <div class="stat-card-subtitle">Average detection confidence</div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filters-card">
+            <h2>Filters & Search</h2>
+            <div class="filter-group">
+                <label>Anomaly Type:</label>
+                <select id="filter-type" onchange="loadAnomalies()">
+                    <option value="">All Types</option>
+                    <option value="traffic_spike">Traffic Spike</option>
+                    <option value="mix_shift">Mix Shift</option>
+                    <option value="navigation_edge">Navigation Edge</option>
+                </select>
+                <label>Month:</label>
+                <select id="filter-month" onchange="loadAnomalies()">
+                    <option value="">All Months</option>
+                </select>
+                <label>Min Confidence:</label>
+                <input type="number" id="filter-confidence" min="0" max="1" step="0.1" value="0.5" onchange="loadAnomalies()">
+                <button class="btn-primary" onclick="loadAnomalies()">Apply Filters</button>
+            </div>
+        </div>
+        
+        <!-- Anomalies Table -->
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>From (prev)</th>
+                        <th>To (curr)</th>
+                        <th>Type</th>
+                        <th>Count</th>
+                        <th>Deviation</th>
+                        <th>Forecast</th>
+                        <th>Confidence</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="anomalies-table">
+                    <tr><td colspan="7" class="loading">Loading anomalies...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Explainability Panel -->
+    <div class="overlay" id="overlay" onclick="closeExplainabilityPanel()"></div>
+    <div class="explainability-panel" id="explainability-panel">
+        <div class="panel-header">
+            <h2>Anomaly Details & Explanation</h2>
+            <button class="close-btn" onclick="closeExplainabilityPanel()">×</button>
+        </div>
+        <div class="panel-content" id="panel-content">
+            <div class="loading">Select an anomaly to view details</div>
+        </div>
+    </div>
+    
+    <script>
+        let currentAnomalies = [];
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/anomalies/stats');
+                const stats = await response.json();
+                
+                document.getElementById('total-anomalies').textContent = stats.total || 0;
+                document.getElementById('traffic-spikes').textContent = stats.by_type?.traffic_spike || 0;
+                document.getElementById('mix-shifts').textContent = stats.by_type?.mix_shift || 0;
+                document.getElementById('avg-confidence').textContent = (stats.avg_confidence || 0).toFixed(2);
+                
+                // Populate month filter
+                const monthSelect = document.getElementById('filter-month');
+                Object.keys(stats.by_month || {}).sort().forEach(month => {
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.textContent = month;
+                    monthSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        async function loadAnomalies() {
+            const type = document.getElementById('filter-type').value;
+            const month = document.getElementById('filter-month').value;
+            const confidence = parseFloat(document.getElementById('filter-confidence').value) || 0;
+            
+            const tbody = document.getElementById('anomalies-table');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading anomalies...</td></tr>';
+            
+            const params = new URLSearchParams();
+            if (type) params.append('anomaly_type', type);
+            if (month) params.append('month', month);
+            if (confidence > 0) params.append('min_confidence', confidence);
+            params.append('limit', '1000');
+            
+            try {
+                const response = await fetch(`/api/anomalies?${params}`);
+                const data = await response.json();
+                
+                if (!data.anomalies || data.anomalies.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="loading">No anomalies found</td></tr>';
+                    currentAnomalies = [];
+                    return;
+                }
+                
+                currentAnomalies = data.anomalies;
+                
+                tbody.innerHTML = data.anomalies.map((a, idx) => {
+                    const badgeClass = a.anomaly_type === 'traffic_spike' ? 'badge-traffic-spike' :
+                                      a.anomaly_type === 'mix_shift' ? 'badge-mix-shift' : 'badge-navigation-edge';
+                    
+                    // Check if forecast data exists
+                    const hasForecast = a.forecast_flag !== undefined && a.forecast_flag !== null;
+                    let forecastDisplay = '<span style="color: #757575;">N/A</span>';
+                    
+                    if (hasForecast) {
+                        if (a.forecast_flag) {
+                            forecastDisplay = `<span style="color: #f44336; font-weight: bold;">⚠ Forecast Spike</span><br>
+                                <small style="font-size: 0.75rem;">Pred: ${(a.forecast_n || 0).toFixed(0)} | Actual: ${a.n || 0}</small>`;
+                        } else {
+                            forecastDisplay = `<span style="color: #4caf50;">✓ Normal</span><br>
+                                <small style="font-size: 0.75rem;">Pred: ${(a.forecast_n || 0).toFixed(0)}</small>`;
+                        }
+                    }
+                    
+                    // Check if forecast_spike is in anomaly_type
+                    const anomalyTypeDisplay = (a.anomaly_type || '').includes('forecast_spike') ? 
+                        `${a.anomaly_type} <span style="color: #f44336; font-size: 0.75rem;">[FORECAST]</span>` : 
+                        (a.anomaly_type || 'unknown');
+                    
+                    return `
+                        <tr onclick="openExplainabilityPanel(${idx})">
+                            <td>${(a.prev || '').substring(0, 40)}${(a.prev || '').length > 40 ? '...' : ''}</td>
+                            <td>${(a.curr || '').substring(0, 40)}${(a.curr || '').length > 40 ? '...' : ''}</td>
+                            <td><span class="badge ${badgeClass}">${anomalyTypeDisplay}</span></td>
+                            <td>${a.n || 0}</td>
+                            <td>${(a.deviation_ratio || 0).toFixed(2)}x</td>
+                            <td>${forecastDisplay}</td>
+                            <td>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: ${(a.confidence || 0) * 100}%"></div>
+                                </div>
+                                ${(a.confidence || 0).toFixed(2)}
+                            </td>
+                            <td>
+                                <button class="btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="event.stopPropagation(); openExplainabilityPanel(${idx})">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading anomalies:', error);
+                tbody.innerHTML = `<tr><td colspan="7" class="loading" style="color: #f44336;">Error: ${error.message}</td></tr>`;
+            }
+        }
+        
+        async function openExplainabilityPanel(idx) {
+            const anomaly = currentAnomalies[idx];
+            if (!anomaly) return;
+            
+            const panel = document.getElementById('explainability-panel');
+            const overlay = document.getElementById('overlay');
+            const content = document.getElementById('panel-content');
+            
+            content.innerHTML = '<div class="loading">Loading details...</div>';
+            panel.classList.add('open');
+            overlay.classList.add('show');
+            
+            try {
+                // Fetch detailed anomaly info
+                const detailResponse = await fetch(`/api/anomalies/${anomaly.anomaly_id || idx}`);
+                const detail = detailResponse.ok ? await detailResponse.json() : anomaly;
+                
+                // Fetch time-series
+                const tsResponse = await fetch(`/api/timeseries?prev=${encodeURIComponent(anomaly.prev)}&curr=${encodeURIComponent(anomaly.curr)}&type=${encodeURIComponent(anomaly.type || '')}`);
+                const tsData = await tsResponse.json();
+                
+                // Build panel content
+                const signals = detail.signals || [];
+                const explanation = detail.explanation || `Anomaly detected in ${anomaly.month} with confidence ${(anomaly.confidence || 0).toFixed(2)}.`;
+                
+                content.innerHTML = `
+                    <div class="panel-section">
+                        <h3>Anomaly Overview</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <strong>From:</strong> ${anomaly.prev || 'N/A'}<br>
+                            <strong>To:</strong> ${anomaly.curr || 'N/A'}<br>
+                            <strong>Month:</strong> ${anomaly.month || 'N/A'}<br>
+                            <strong>Confidence:</strong> <span style="font-size: 1.5rem; color: #1976d2;">${(anomaly.confidence || 0).toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-section">
+                        <h3>Detection Signals</h3>
+                        <div class="signal-chips">
+                            ${signals.map(s => `<span class="chip">${s}</span>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="panel-section">
+                        <h3>Explanation</h3>
+                        <div class="explanation-box">${explanation}</div>
+                    </div>
+                    
+                    <div class="panel-section">
+                        <h3>Time-Series Analysis</h3>
+                        <div id="timeseries-chart" style="height: 300px;"></div>
+                    </div>
+                `;
+                
+                // Render time-series chart
+                if (tsData.months && tsData.months.length > 0) {
+                    const traces = [{
+                        x: tsData.months,
+                        y: tsData.traffic,
+                        type: 'bar',
+                        name: 'Actual Traffic',
+                        marker: { color: '#1976d2' }
+                    }];
+                    
+                    if (tsData.baseline && tsData.baseline[0] > 0) {
+                        traces.push({
+                            x: tsData.months,
+                            y: tsData.baseline,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Baseline Median',
+                            line: { color: '#757575', dash: 'dash' }
+                        });
+                    }
+                    
+                    if (tsData.forecast && tsData.forecast[0] !== null) {
+                        traces.push({
+                            x: tsData.months,
+                            y: tsData.forecast,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Forecast',
+                            line: { color: '#ff9800' }
+                        });
+                    }
+                    
+                    Plotly.newPlot('timeseries-chart', traces, {
+                        title: 'Traffic Over Time',
+                        xaxis: { title: 'Month' },
+                        yaxis: { title: 'Transitions' },
+                        hovermode: 'closest',
+                        margin: { l: 60, r: 20, t: 40, b: 60 }
+                    }, {responsive: true});
+                }
+            } catch (error) {
+                console.error('Error loading details:', error);
+                content.innerHTML = `<div class="loading" style="color: #f44336;">Error loading details: ${error.message}</div>`;
+            }
+        }
+        
+        function closeExplainabilityPanel() {
+            document.getElementById('explainability-panel').classList.remove('open');
+            document.getElementById('overlay').classList.remove('show');
+        }
+        
+        // Initialize
+        loadStats();
+        loadAnomalies();
+    </script>
+</body>
+</html>
+

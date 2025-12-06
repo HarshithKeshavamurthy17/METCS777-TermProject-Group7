@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wikipedia Clickstream Anomaly Detection - Advanced ML-Powered Explanation</title>
+
+    <!-- Premium Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        /* ============================================
+           PREMIUM DESIGN SYSTEM - CSS VARIABLES
+           ============================================ */
+        :root {
+            /* Dark Theme (Default) */
+            --bg-main: #050816;
+            --bg-card: rgba(15, 23, 42, 0.9);
+            --bg-card-soft: rgba(15, 23, 42, 0.75);
+            --bg-card-hover: rgba(30, 41, 59, 0.95);
+            --bg-overlay: rgba(5, 8, 22, 0.85);
+
+            /* Accent Colors */
+            --accent-primary: #4f46e5;
+            --accent-primary-hover: #6366f1;
+            --accent-secondary: #22d3ee;
+            --accent-danger: #ef4444;
+            --accent-success: #22c55e;
+            --accent-warning: #f59e0b;
+
+            /* Text Colors */
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --text-subtle: #6b7280;
+
+            /* Borders & Dividers */
+            --border-subtle: rgba(148, 163, 184, 0.35);
+            --border-accent: rgba(79, 70, 229, 0.5);
+
+            /* Shadows */
+            --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.6);
+            --shadow-medium: 0 12px 24px rgba(15, 23, 42, 0.4);
+            --shadow-strong: 0 24px 48px rgba(15, 23, 42, 0.8);
+            --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.3);
+
+            /* Border Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+
+            /* Spacing */
+            --spacing-xs: 8px;
+            --spacing-sm: 12px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+
+            /* Transitions */
+            --transition-fast: 0.15s ease-out;
+            --transition-base: 0.18s ease-out;
+            --transition-slow: 0.25s ease-out;
+        }
+
+        :root[data-theme="light"] {
+            --bg-main: #f8fafc;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --bg-card-soft: rgba(255, 255, 255, 0.85);
+            --bg-card-hover: rgba(248, 250, 252, 0.98);
+            --bg-overlay: rgba(15, 23, 42, 0.6);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-subtle: #64748b;
+            --border-subtle: rgba(148, 163, 184, 0.25);
+        }
+
+        /* ============================================
+           BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.6;
+            transition: background-color var(--transition-slow), color var(--transition-slow);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Smooth entrance animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .fade-in-delay-1 {
+            animation-delay: 0.1s;
+            opacity: 0;
+        }
+
+        .fade-in-delay-2 {
+            animation-delay: 0.2s;
+            opacity: 0;
+        }
+
+        .fade-in-delay-3 {
+            animation-delay: 0.3s;
+            opacity: 0;
+        }
+
+        /* ============================================
+           HEADER - GRADIENT HERO
+           ============================================ */
+        .app-bar {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+            color: var(--text-main);
+            padding: var(--spacing-xl) var(--spacing-lg);
+            box-shadow: var(--shadow-medium);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(79, 70, 229, 0.3), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(34, 211, 238, 0.2), transparent 50%);
+            pointer-events: none;
+        }
+
+        .app-bar .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-bar h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .app-bar p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 400;
+        }
+
+        /* Floating action buttons in header */
+        .app-bar button {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: 1.1rem;
+        }
+
+        .app-bar button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        /* ============================================
+           LAYOUT
+           ============================================ */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        /* ============================================
+           KPI CARDS - GLASSMORPHISM
+           ============================================ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-medium);
+            transition: transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: var(--shadow-soft);
+            background: var(--bg-card-hover);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stat-card-title {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .stat-card-value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1;
+            margin: var(--spacing-sm) 0;
+            letter-spacing: -0.02em;
+        }
+
+        .stat-card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: var(--spacing-sm);
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        /* Visual progress indicator */
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            width: 60%;
+            background: linear-gradient(90deg, var(--accent-primary), transparent);
+            opacity: 0.3;
+        }
+
+        /* ============================================
+           HERO BOX - FEATURE HIGHLIGHT
+           ============================================ */
+        .hero-box {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(34, 211, 238, 0.1) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: var(--spacing-xl);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-accent);
+            box-shadow: var(--shadow-medium);
+            margin-bottom: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-box::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+        }
+
+        .hero-box h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .hero-box p {
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.9375rem;
+        }
+
+        .hero-box ul {
+            list-style: none;
+            padding-left: 0;
+            margin: var(--spacing-md) 0;
+        }
+
+        .hero-box li {
+            padding: var(--spacing-sm) 0;
+            color: var(--text-muted);
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-sm);
+            line-height: 1.6;
+        }
+
+        .hero-box li:before {
+            content: "▸";
+            color: var(--accent-secondary);
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 2px;
+        }
+
+        .hero-box .note {
+            font-size: 0.875rem;
+            color: var(--text-subtle);
+            font-style: italic;
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* ============================================
+           CHART CARDS & MID-SECTION
+           ============================================ */
+        .overview-chart-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-medium);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .overview-chart-card h2 {
+            font-size: 1.375rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .overview-chart-card .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .top-anomalies-card,
+        .insights-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            border-left: 3px solid;
+            border-image: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary)) 1;
+            box-shadow: var(--shadow-medium);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .top-anomalies-card h2,
+        .insights-card h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .top-anomaly-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            background: var(--bg-card-soft);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-sm);
+            border: 1px solid var(--border-subtle);
+            transition: all var(--transition-base);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .top-anomaly-item::after {
+            content: '→';
+            position: absolute;
+            right: var(--spacing-md);
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            transition: transform var(--transition-base);
+        }
+
+        .top-anomaly-item:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: var(--shadow-medium);
+            border-color: var(--border-accent);
+        }
+
+        .top-anomaly-item:hover::after {
+            transform: translateX(4px);
+        }
+
+        .top-anomaly-item .info {
+            flex: 1;
+        }
+
+        .top-anomaly-item strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .top-anomaly-item .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: var(--spacing-xs);
+        }
+
+        .insight-item {
+            padding: var(--spacing-md);
+            background: var(--bg-card-soft);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-sm);
+            border: 1px solid var(--border-subtle);
+            transition: all var(--transition-base);
+        }
+
+        .insight-item:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-accent);
+        }
+
+        .insight-item .icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .insight-item span:last-child {
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .help-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-card);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            padding: var(--spacing-xl);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-strong);
+            z-index: 2000;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .help-modal.open {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .help-modal h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-lg);
+            color: var(--text-main);
+        }
+
+        .help-modal .term {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .help-modal .term-name {
+            font-weight: 600;
+            color: var(--accent-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .help-modal .term-def {
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .what-happened {
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        .what-happened .badge-inline {
+            display: inline-block;
+            padding: 0.1875rem 0.5rem;
+            border-radius: var(--radius-full);
+            font-size: 0.6875rem;
+            font-weight: 600;
+            margin: 0 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid transparent;
+        }
+
+        .badge-inline.traffic {
+            background: rgba(79, 70, 229, 0.15);
+            color: var(--accent-primary);
+            border-color: rgba(79, 70, 229, 0.3);
+        }
+
+        .badge-inline.forecast {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-inline.mix {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-warning);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-inline.daily {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-success);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .badge-inline.monthly {
+            background: var(--bg-card-soft);
+            color: var(--text-muted);
+            border-color: var(--border-subtle);
+        }
+
+        /* ============================================
+           RESPONSIVE & UTILITIES
+           ============================================ */
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .top-anomalies-card,
+            .insights-card {
+                margin-bottom: var(--spacing-lg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .explainability-panel {
+                width: 100vw;
+            }
+
+            .container {
+                padding: var(--spacing-md);
+            }
+
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group label {
+                margin-bottom: var(--spacing-xs);
+            }
+        }
+
+        /* Plotly dark theme override */
+        .js-plotly-plot {
+            background: transparent !important;
+        }
+
+        .plotly .modebar {
+            background: var(--bg-card) !important;
+        }
+
+        .filters-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+
+        .filters-card h2 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: #212121;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            color: #424242;
+            font-size: 0.875rem;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 0.625rem 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-family: 'Roboto', sans-serif;
+            transition: border-color 0.2s;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+
+        .btn-primary {
+            padding: 0.625rem 1.5rem;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary:hover {
+            background: #1565c0;
+        }
+
+        /* ============================================
+           TABLE - MODERN DATA GRID
+           ============================================ */
+        .table-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-medium);
+            overflow: hidden;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        thead {
+            background: var(--bg-card-soft);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: var(--spacing-md) var(--spacing-lg);
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 2px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-main);
+            font-size: 0.875rem;
+        }
+
+        tbody tr {
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tbody tr:hover {
+            background: var(--bg-card-hover);
+            transform: scale(1.001);
+        }
+
+        tbody tr.selected {
+            background: rgba(79, 70, 229, 0.15);
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        /* Page name tags */
+        td:first-child,
+        td:nth-child(2) {
+            font-weight: 500;
+        }
+
+        /* ============================================
+           BADGES & PILLS
+           ============================================ */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid transparent;
+        }
+
+        .badge-traffic-spike {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-mix-shift {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-warning);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-navigation-edge {
+            background: rgba(79, 70, 229, 0.15);
+            color: var(--accent-primary);
+            border-color: rgba(79, 70, 229, 0.3);
+        }
+
+        .confidence-bar {
+            height: 6px;
+            background: var(--bg-card-soft);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            width: 80px;
+            display: inline-block;
+            margin-right: var(--spacing-sm);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-success), var(--accent-warning), var(--accent-danger));
+            transition: width var(--transition-slow);
+            border-radius: var(--radius-full);
+        }
+
+        /* Mini Sparkline */
+        .sparkline {
+            width: 80px;
+            height: 20px;
+            display: inline-block;
+        }
+
+        /* ============================================
+           DETAILS MODAL - PREMIUM
+           ============================================ */
+        .explainability-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 1100px;
+            max-width: 90vw;
+            height: 100vh;
+            background: var(--bg-card);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-left: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-strong);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform var(--transition-slow) cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+        }
+
+        .explainability-panel.open {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #6366f1 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .panel-header h2 {
+            font-size: 1.375rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-full);
+            transition: all var(--transition-base);
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+        }
+
+        .panel-content {
+            padding: var(--spacing-xl);
+        }
+
+        .panel-section {
+            margin-bottom: var(--spacing-xl);
+            background: var(--bg-card-soft);
+            backdrop-filter: blur(10px);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            border-left: 4px solid;
+            border-image: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary)) 1;
+            border: 1px solid var(--border-subtle);
+            border-left: 4px solid var(--accent-primary);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .panel-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: var(--spacing-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 0.8125rem;
+        }
+
+        .panel-section h3 .material-icons {
+            font-size: 1.125rem;
+            color: var(--accent-primary);
+        }
+
+        .panel-section p.subtitle {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            margin-bottom: var(--spacing-md);
+            font-weight: 400;
+        }
+
+        .signal-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .chip {
+            padding: 0.5rem 1rem;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 16px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .chip-danger {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .chip-warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .chip-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .explanation-box {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container h4 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #757575;
+            margin-bottom: 0.5rem;
+        }
+
+        .signal-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .signal-label {
+            font-weight: 500;
+            color: #424242;
+        }
+
+        .signal-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .signal-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+
+        .signal-status.normal {
+            background: #4caf50;
+        }
+
+        .signal-status.elevated {
+            background: #ffc107;
+        }
+
+        .signal-status.anomaly {
+            background: #f44336;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-overlay);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 999;
+            display: none;
+            transition: opacity var(--transition-base);
+        }
+
+        .overlay.show {
+            display: block;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--text-muted);
+        }
+
+        /* Help Modal Styling */
+        .help-modal {
+            background: var(--bg-card);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .help-modal h2 {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .help-modal .term-name {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .help-modal .term-def {
+            color: var(--text-muted);
+        }
+
+        .accordion {
+            margin-bottom: 1rem;
+        }
+
+        .accordion-header {
+            padding: var(--spacing-md);
+            background: var(--bg-card-soft);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            transition: all var(--transition-base);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .accordion-header:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-accent);
+        }
+
+        .accordion-content {
+            padding: var(--spacing-md);
+            background: var(--bg-card-soft);
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            display: none;
+            border: 1px solid var(--border-subtle);
+            border-top: none;
+        }
+
+        .accordion-content.open {
+            display: block;
+        }
+
+        /* Signal chips styling */
+        .signal-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        .chip {
+            padding: var(--spacing-xs) var(--spacing-md);
+            background: var(--bg-card-soft);
+            color: var(--accent-primary);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid var(--border-subtle);
+            transition: all var(--transition-base);
+        }
+
+        .chip:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-accent);
+        }
+
+        .chip-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .chip-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-warning);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .chip-success {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-success);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .explanation-box {
+            background: var(--bg-card-soft);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+        }
+
+        .chart-container {
+            background: var(--bg-card-soft);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-md);
+            box-shadow: var(--shadow-medium);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .chart-container h4 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .signal-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            background: var(--bg-card-soft);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-sm);
+            box-shadow: var(--shadow-medium);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .signal-label {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .signal-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .signal-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: var(--spacing-sm);
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .signal-status.normal {
+            background: var(--accent-success);
+            color: var(--accent-success);
+        }
+
+        .signal-status.elevated {
+            background: var(--accent-warning);
+            color: var(--accent-warning);
+        }
+
+        .signal-status.anomaly {
+            background: var(--accent-danger);
+            color: var(--accent-danger);
+        }
+
+        @media (max-width: 768px) {
+            .explainability-panel {
+                width: 100vw;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-bar">
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>🔍 Wikipedia Clickstream Anomaly Detection</h1>
+                <p>Advanced ML-powered anomaly explanation with forecasting & real-time validation</p>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button id="help-btn" class="btn-primary"
+                    style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);"
+                    onclick="openHelpModal()">?</button>
+                <button id="theme-toggle" class="btn-primary"
+                    style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);"
+                    onclick="toggleTheme()">☀</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">⚠ Total Anomalies</span>
+                    <span class="material-icons stat-card-icon">warning</span>
+                </div>
+                <div class="stat-card-value" id="total-anomalies">-</div>
+                <div class="stat-card-subtitle">Unusual navigation patterns flagged across all months.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">📈 Traffic Spikes</span>
+                    <span class="material-icons stat-card-icon">trending_up</span>
+                </div>
+                <div class="stat-card-value" id="traffic-spikes">-</div>
+                <div class="stat-card-subtitle">Spikes where traffic jumped far above baseline.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">🔄 Mix Shifts</span>
+                    <span class="material-icons stat-card-icon">swap_horiz</span>
+                </div>
+                <div class="stat-card-value" id="mix-shifts">-</div>
+                <div class="stat-card-subtitle">Pages whose visitors started coming from new sources.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">📊 Avg Confidence</span>
+                    <span class="material-icons stat-card-icon">assessment</span>
+                </div>
+                <div class="stat-card-value" id="avg-confidence">-</div>
+                <div class="stat-card-subtitle">Average certainty across all detections.</div>
+            </div>
+        </div>
+
+        <!-- Hero Story Box -->
+        <div class="hero-box">
+            <h2>🧠 What this dashboard shows</h2>
+            <p>This tool analyzes monthly Wikipedia clickstream data to spot unusual user navigation. We detect three
+                types of anomalies that indicate significant changes in how users move between pages.</p>
+            <ul>
+                <li><strong>Traffic spikes</strong> – pages where transitions suddenly jump above historical patterns
+                </li>
+                <li><strong>Referrer mix shifts</strong> – pages that start getting traffic from new/unusual sources
+                </li>
+                <li><strong>Forecast spikes</strong> – traffic that exceeds our time-series forecast</li>
+            </ul>
+            <div class="note">💡 <strong>How to use this dashboard:</strong> Pick a month and explore anomalies. Click
+                "View Details" to see full explanation and charts.</div>
+        </div>
+
+        <!-- Overview Chart -->
+        <div class="overview-chart-card">
+            <h2>Anomalies Over Time (Monthly)</h2>
+            <p class="subtitle">How anomaly counts evolve across months</p>
+            <div id="overview-chart" style="height: 300px;"></div>
+        </div>
+
+        <!-- Top 5 Anomalies and Insights Side by Side -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+            <div class="top-anomalies-card">
+                <h2>Top 5 Most Interesting Anomalies</h2>
+                <div id="top-anomalies-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <div class="insights-card">
+                <h2>Key Insights Highlight</h2>
+                <div id="insights-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-card">
+            <h2>Filters & Search</h2>
+            <div class="filter-group">
+                <label>Anomaly Type:</label>
+                <select id="filter-type" onchange="loadAnomalies()">
+                    <option value="">All Types</option>
+                    <option value="traffic_spike">Traffic Spike</option>
+                    <option value="mix_shift">Mix Shift</option>
+                    <option value="navigation_edge">Navigation Edge</option>
+                </select>
+                <label>Month:</label>
+                <select id="filter-month" onchange="loadAnomalies()">
+                    <option value="">All Months</option>
+                </select>
+                <label>Min Confidence:</label>
+                <input type="number" id="filter-confidence" min="0" max="1" step="0.1" value="0.5"
+                    onchange="loadAnomalies()">
+                <button class="btn-primary" onclick="loadAnomalies()">Apply Filters</button>
+                <button class="btn-primary"
+                    style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.3); color: #10b981;"
+                    onclick="exportCSV()">Export CSV</button>
+            </div>
+        </div>
+
+        <!-- Anomalies Table -->
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>From (prev)</th>
+                        <th>To (curr)</th>
+                        <th>What Happened?</th>
+                        <th>Count</th>
+                        <th>Deviation</th>
+                        <th>Forecast</th>
+                        <th>Trend</th>
+                        <th>Confidence</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="anomalies-table">
+                    <tr>
+                        <td colspan="9" class="loading">Loading anomalies...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="help-modal" id="help-modal">
+        <h2>Key Terms Used in This Dashboard</h2>
+        <div class="term">
+            <div class="term-name">Traffic Spike</div>
+            <div class="term-def">Current month transitions are much higher than historical median. This indicates a
+                sudden surge in user navigation to a page.</div>
+        </div>
+        <div class="term">
+            <div class="term-name">Deviation Ratio</div>
+            <div class="term-def">How many times the current traffic exceeds baseline. A ratio of 10x means traffic is
+                10 times higher than normal.</div>
+        </div>
+        <div class="term">
+            <div class="term-name">Referrer Mix Shift</div>
+            <div class="term-def">When the sources sending traffic to a page change significantly. For example, if a
+                page usually gets traffic from internal links but suddenly gets more from search engines.</div>
+        </div>
+        <div class="term">
+            <div class="term-name">Forecast Spike</div>
+            <div class="term-def">Traffic exceeds what our time-series model predicted. This means the actual traffic
+                was higher than our forecasted upper bound.</div>
+        </div>
+        <div class="term">
+            <div class="term-name">Confidence</div>
+            <div class="term-def">How sure the system is that this is truly unusual. Higher confidence (closer to 1.0)
+                means the anomaly is more significant.</div>
+        </div>
+        <div class="term">
+            <div class="term-name">Trend Sparkline</div>
+            <div class="term-def">Mini 6-month traffic history for that edge. Shows the pattern leading up to the
+                anomaly month.</div>
+        </div>
+        <button class="btn-primary" onclick="closeHelpModal()" style="margin-top: 1rem; width: 100%;">Close</button>
+    </div>
+
+    <!-- Explainability Panel -->
+    <div class="overlay" id="overlay" onclick="closeExplainabilityPanel(); closeHelpModal();"></div>
+    <div class="explainability-panel" id="explainability-panel">
+        <div class="panel-header">
+            <h2>Anomaly Explanation & Analysis</h2>
+            <button class="close-btn" onclick="closeExplainabilityPanel()">×</button>
+        </div>
+        <div class="panel-content" id="panel-content">
+            <div class="loading">Select an anomaly to view detailed explanation</div>
+        </div>
+    </div>
+
+    <script>
+        let currentAnomalies = [];
+        let anomalyDetailsCache = {};
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/anomalies/stats');
+                const stats = await response.json();
+
+                document.getElementById('total-anomalies').textContent = stats.total || 0;
+                document.getElementById('traffic-spikes').textContent = stats.by_type?.traffic_spike || 0;
+                document.getElementById('mix-shifts').textContent = stats.by_type?.mix_shift || 0;
+                document.getElementById('avg-confidence').textContent = (stats.avg_confidence || 0).toFixed(2);
+
+                // Populate month filter
+                const monthSelect = document.getElementById('filter-month');
+                Object.keys(stats.by_month || {}).sort().forEach(month => {
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.textContent = month;
+                    monthSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function generateSparkline(data, isAnomalous = false) {
+            if (!data || data.length === 0) return '<svg width="80" height="20"></svg>';
+
+            const values = data.map(d => typeof d === 'object' ? d.n || d.views || 0 : d);
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+            const range = max - min || 1;
+
+            const width = 80;
+            const height = 20;
+            const padding = 2;
+            const points = values.map((v, i) => {
+                const x = (i / (values.length - 1)) * (width - padding * 2) + padding;
+                const y = height - padding - ((v - min) / range) * (height - padding * 2);
+                return `${x},${y}`;
+            }).join(' ');
+
+            const lastPoint = points.split(' ').pop().split(',');
+            const lastColor = isAnomalous ? '#f44336' : '#1976d2';
+
+            return `<svg width="${width}" height="${height}" style="display:block;">
+                <polyline points="${points}" fill="none" stroke="#1976d2" stroke-width="1.5"/>
+                <circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="2" fill="${lastColor}"/>
+            </svg>`;
+        }
+
+        async function loadAnomalies() {
+            const type = document.getElementById('filter-type').value;
+            const month = document.getElementById('filter-month').value;
+            const confidence = parseFloat(document.getElementById('filter-confidence').value) || 0;
+
+            const tbody = document.getElementById('anomalies-table');
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading anomalies...</td></tr>';
+
+            // Also need to fetch details for "What Happened?" column
+            const detailsPromises = [];
+
+            const params = new URLSearchParams();
+            if (type) params.append('anomaly_type', type);
+            if (month) params.append('month', month);
+            if (confidence > 0) params.append('min_confidence', confidence);
+            params.append('limit', '1000');
+
+            try {
+                const response = await fetch(`/api/anomalies?${params}`);
+                const data = await response.json();
+
+                if (!data.anomalies || data.anomalies.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="loading">No anomalies found</td></tr>';
+                    currentAnomalies = [];
+                    return;
+                }
+
+                currentAnomalies = data.anomalies;
+
+                // Load timeseries for sparklines
+                const sparklinePromises = data.anomalies.map(async (a, idx) => {
+                    try {
+                        const tsResponse = await fetch(`/api/timeseries?prev=${encodeURIComponent(a.prev)}&curr=${encodeURIComponent(a.curr)}&type=${encodeURIComponent(a.type || '')}`);
+                        const tsData = await tsResponse.json();
+                        return { idx, data: tsData.traffic || [], month: a.month };
+                    } catch {
+                        return { idx, data: [], month: a.month };
+                    }
+                });
+
+                // Load details for "What Happened?" column
+                const detailsPromises = data.anomalies.map(async (a, idx) => {
+                    try {
+                        const detailResponse = await fetch(`/api/anomalies/${a.anomaly_id || idx}`);
+                        const detailData = await detailResponse.json();
+                        return { idx, details: detailData };
+                    } catch {
+                        return { idx, details: { daily_spike_match: false } };
+                    }
+                });
+
+                const [sparklines, detailsList] = await Promise.all([
+                    Promise.all(sparklinePromises),
+                    Promise.all(detailsPromises)
+                ]);
+
+                const sparklineMap = {};
+                sparklines.forEach(s => {
+                    sparklineMap[s.idx] = { data: s.data, month: s.month };
+                });
+
+                const detailsMap = {};
+                detailsList.forEach(d => {
+                    detailsMap[d.idx] = d.details;
+                });
+
+                tbody.innerHTML = data.anomalies.map((a, idx) => {
+                    const details = detailsMap[idx] || {};
+                    const badgeClass = a.anomaly_type === 'traffic_spike' ? 'badge-traffic-spike' :
+                        a.anomaly_type === 'mix_shift' ? 'badge-mix-shift' : 'badge-navigation-edge';
+
+                    // Forecast display
+                    const hasForecast = a.forecast_flag !== undefined && a.forecast_flag !== null;
+                    let forecastDisplay = '<span style="color: #757575;">N/A</span>';
+
+                    if (hasForecast) {
+                        if (a.forecast_flag) {
+                            forecastDisplay = `<span style="color: #f44336; font-weight: bold;">⚠ Forecast Spike</span><br>
+                                <small style="font-size: 0.75rem;">Pred: ${(a.forecast_n || 0).toFixed(0)} | Actual: ${a.n || 0}</small>`;
+                        } else {
+                            forecastDisplay = `<span style="color: #4caf50;">✓ Normal</span><br>
+                                <small style="font-size: 0.75rem;">Pred: ${(a.forecast_n || 0).toFixed(0)}</small>`;
+                        }
+                    }
+
+                    // Generate "What Happened?" description
+                    const whatHappened = generateWhatHappened(a, details.daily_spike_match || false);
+
+                    // Sparkline
+                    const sparkline = sparklineMap[idx] || { data: [], month: a.month };
+                    const sparklineSVG = generateSparkline(
+                        sparkline.data.slice(-6),
+                        sparkline.month === a.month
+                    );
+
+                    return `
+                        <tr onclick="openExplainabilityPanel(${idx})">
+                            <td>${(a.prev || '').substring(0, 30)}${(a.prev || '').length > 30 ? '...' : ''}</td>
+                            <td>${(a.curr || '').substring(0, 30)}${(a.curr || '').length > 30 ? '...' : ''}</td>
+                            <td class="what-happened">${whatHappened}</td>
+                            <td>${a.n || 0}</td>
+                            <td>${(a.deviation_ratio || 0).toFixed(2)}x</td>
+                            <td>${forecastDisplay}</td>
+                            <td>${sparklineSVG}</td>
+                            <td>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: ${(a.confidence || 0) * 100}%"></div>
+                                </div>
+                                ${(a.confidence || 0).toFixed(2)}
+                            </td>
+                            <td>
+                                <button class="btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="event.stopPropagation(); openExplainabilityPanel(${idx})">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading anomalies:', error);
+                tbody.innerHTML = `<tr><td colspan="9" class="loading" style="color: #f44336;">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        async function openExplainabilityPanel(idx) {
+            const anomaly = currentAnomalies[idx];
+            if (!anomaly) return;
+
+            const panel = document.getElementById('explainability-panel');
+            const overlay = document.getElementById('overlay');
+            const content = document.getElementById('panel-content');
+
+            content.innerHTML = '<div class="loading">Loading detailed explanation...</div>';
+            panel.classList.add('open');
+            overlay.classList.add('show');
+
+            // Check cache
+            const cacheKey = anomaly.anomaly_id || idx;
+            if (anomalyDetailsCache[cacheKey]) {
+                renderPanelContent(anomalyDetailsCache[cacheKey]);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/anomalies/${anomaly.anomaly_id || idx}`);
+                if (!response.ok) throw new Error('Failed to load details');
+
+                const details = await response.json();
+
+                // GAP-FIX: Fetch daily pageviews
+                try {
+                    if (anomaly.curr && anomaly.month) {
+                        const dailyResponse = await fetch(`/api/timeseries?daily=true&curr=${encodeURIComponent(anomaly.curr)}&month=${encodeURIComponent(anomaly.month)}`);
+                        if (dailyResponse.ok) {
+                            const dailyData = await dailyResponse.json();
+                            details.daily_pageviews = dailyData;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error fetching daily pageviews:', e);
+                }
+
+                anomalyDetailsCache[cacheKey] = details;
+                renderPanelContent(details);
+            } catch (error) {
+                console.error('Error loading details:', error);
+                content.innerHTML = `<div class="loading" style="color: #f44336;">Error: ${error.message}</div>`;
+            }
+        }
+
+        function generateWhatHappened(anomaly, dailySpikeMatch) {
+            const parts = [];
+            const badges = [];
+
+            if (anomaly.anomaly_type === 'traffic_spike') {
+                badges.push('<span class="badge-inline traffic">Traffic spike</span>');
+                parts.push(`traffic ${(anomaly.deviation_ratio || 0).toFixed(1)}x above baseline`);
+            }
+
+            if (anomaly.forecast_flag) {
+                badges.push('<span class="badge-inline forecast">Forecast spike</span>');
+                parts.push('exceeded forecast');
+            }
+
+            if (anomaly.anomaly_type === 'mix_shift') {
+                badges.push('<span class="badge-inline mix">Mix shift</span>');
+                parts.push('referrer sources changed');
+            }
+
+            if (dailySpikeMatch) {
+                badges.push('<span class="badge-inline daily">Daily spike confirmed</span>');
+            } else if (anomaly.forecast_flag || anomaly.anomaly_type === 'traffic_spike') {
+                badges.push('<span class="badge-inline monthly">Monthly-only anomaly</span>');
+            }
+
+            let text = badges.join(' ');
+            if (parts.length > 0) {
+                text += ` (${parts.join(', ')})`;
+            }
+
+            return text || 'Anomaly detected';
+        }
+
+        function renderPanelContent(details) {
+            const anomaly = details.anomaly;
+            const signals = details.detection_signals || {};
+            const timeseries = details.timeseries_6m || [];
+            const referrerShares = details.referrer_shares || [];
+            const dailyPageviews = details.daily_pageviews || [];
+            const forecast = details.forecast_values || {};
+
+            // Generate summary sentence
+            const month = anomaly.month || 'N/A';
+            const prev = anomaly.prev || 'N/A';
+            const curr = anomaly.curr || 'N/A';
+            const deviationRatio = (anomaly.deviation_ratio || 0).toFixed(1);
+            const confidence = (anomaly.confidence || 0).toFixed(2);
+            const zScore = (anomaly.z_score || 0).toFixed(1);
+            const forecastError = forecast.forecast_error || 0;
+
+            let summaryText = `In ${month}, traffic from "${prev}" to "${curr}" was ${deviationRatio}x higher than normal.`;
+            if (forecast.forecast_flag) {
+                summaryText += ` Both the statistical detector and forecast model flagged this edge as anomalous,`;
+            } else {
+                summaryText += ` The statistical detector flagged this edge as anomalous,`;
+            }
+            summaryText += ` with a confidence of ${confidence}.`;
+
+            const mainBadges = [];
+            if (forecast.forecast_flag) mainBadges.push('Forecast deviation');
+            if (Math.abs(zScore) >= 3.5) mainBadges.push('High Z-score');
+            if (details.top_referrer_flip) mainBadges.push('Top referrer flip');
+
+            const content = document.getElementById('panel-content');
+
+            content.innerHTML = `
+                <!-- Summary Section -->
+                <div class="panel-section" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(34, 211, 238, 0.1) 100%); border-left: 4px solid var(--accent-primary);">
+                    <h3><span class="material-icons">description</span> Summary</h3>
+                    <p style="margin-bottom: var(--spacing-md); line-height: 1.7; color: var(--text-main); font-size: 0.9375rem;">${summaryText}</p>
+                    <div class="signal-chips">
+                        ${mainBadges.map(b => `<span class="chip" style="background: var(--bg-card-soft); color: var(--accent-primary); border: 1px solid var(--border-accent);">${b}</span>`).join('')}
+                    </div>
+                </div>
+                
+                <!-- Overview Section -->
+                <div class="panel-section">
+                    <h3><span class="material-icons">info</span> Overview</h3>
+                    <p style="font-size: 0.875rem; color: #757575; margin-bottom: 1rem;">Basic information about this anomaly</p>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>From:</strong> ${anomaly.prev || 'N/A'}<br>
+                        <strong>To:</strong> ${anomaly.curr || 'N/A'}<br>
+                        <strong>Month:</strong> ${anomaly.month || 'N/A'}<br>
+                        <strong>Confidence:</strong> <span style="font-size: 1.5rem; color: #1976d2; font-weight: 300;">${(anomaly.confidence || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="signal-chips">
+                        ${(details.signals || []).map(s => `<span class="chip">${s}</span>`).join('')}
+                    </div>
+                </div>
+                
+                <!-- Detection Signals Summary -->
+                <div class="panel-section">
+                    <h3><span class="material-icons">assessment</span> Detection Signals Summary</h3>
+                    <p style="font-size: 0.875rem; color: #757575; margin-bottom: 1rem;">How different detection methods evaluated this anomaly</p>
+                    ${Object.entries(signals).map(([key, signal]) => {
+                const statusClass = signal.status || 'normal';
+                const statusEmoji = statusClass === 'anomaly' ? '🔴' : (statusClass === 'elevated' ? '🟡' : '🟢');
+                return `
+                            <div class="signal-item">
+                                <span class="signal-label">${signal.label || key}</span>
+                                <span class="signal-value">${signal.value.toFixed(2)} ${statusEmoji}</span>
+                                <span class="signal-status ${statusClass}"></span>
+                            </div>
+                        `;
+            }).join('')}
+                </div>
+                
+                <!-- Daily Trend Validation -->
+                <div class="panel-section">
+                    <h3><span class="material-icons">trending_up</span> Daily Trend Validation</h3>
+                    <p style="font-size: 0.875rem; color: #757575; margin-bottom: 1rem;">How today compares to the last 30 days</p>
+                    ${dailyPageviews.length > 0 ? `
+                        <div class="chart-container">
+                            <h4>Last 30 Days Daily Pageviews</h4>
+                            <div id="daily-sparkline-chart" style="height: 150px;"></div>
+                        </div>
+                        ${details.daily_spike_match ?
+                        '<span class="chip chip-danger">🔥 Real-Time Spike Match</span>' :
+                        '<span class="chip">❄ Monthly-only anomaly</span>'}
+                    ` : '<p style="color: #757575;">Daily pageview data not available</p>'}
+                </div>
+                
+                <!-- Referrer Mix Analysis -->
+                <div class="panel-section">
+                    <h3><span class="material-icons">pie_chart</span> Referrer-Mix Shift Analysis</h3>
+                    <p style="font-size: 0.875rem; color: #757575; margin-bottom: 1rem;">How traffic sources changed over the last 6 months</p>
+                    ${referrerShares.length > 0 ? `
+                        <div class="chart-container">
+                            <h4>Referrer Share Over Time</h4>
+                            <div id="referrer-mix-chart" style="height: 300px;"></div>
+                        </div>
+                        ${details.top_referrer_flip ? '<span class="chip chip-warning">🟦 Top Referrer Flip Detected</span>' : ''}
+                        ${details.major_mix_shift ? '<span class="chip chip-warning">🟧 Major Mix Shift</span>' : ''}
+                    ` : '<p style="color: #757575;">Referrer data not available</p>'}
+                </div>
+                
+                <!-- Time-Series Forecast Chart -->
+                <div class="panel-section">
+                    <h3><span class="material-icons">show_chart</span> Time-Series Forecast Analysis</h3>
+                    <p style="font-size: 0.875rem; color: #757575; margin-bottom: 1rem;">Traffic pattern over the last 6 months with forecast comparison</p>
+                    <div class="chart-container">
+                        <h4>Traffic Over Time (6 Months)</h4>
+                        <div id="timeseries-chart" style="height: 300px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Raw Event Details -->
+                <div class="panel-section">
+                    <h3><span class="material-icons">description</span> Raw Event Details</h3>
+                    <div class="explanation-box">
+                        <strong>Description:</strong> ${anomaly.description || 'N/A'}<br>
+                        <strong>Baseline Median:</strong> ${(anomaly.baseline_median || 0).toFixed(2)}<br>
+                        <strong>Z-Score:</strong> ${(anomaly.z_score || 0).toFixed(2)}<br>
+                        <strong>Deviation Ratio:</strong> ${(anomaly.deviation_ratio || 0).toFixed(2)}x
+                    </div>
+                </div>
+            `;
+
+            // Render charts
+            if (dailyPageviews.length > 0) {
+                renderDailySparkline(dailyPageviews, anomaly.month);
+            }
+
+            if (referrerShares.length > 0) {
+                renderReferrerMixChart(referrerShares, anomaly.month);
+            }
+
+            if (timeseries.length > 0) {
+                renderTimeSeriesChart(timeseries, forecast, anomaly);
+            }
+        }
+
+        function renderDailySparkline(pageviews, anomalyMonth) {
+            const dates = pageviews.map(p => p.date);
+            const views = pageviews.map(p => p.views);
+
+            const trace = {
+                x: dates,
+                y: views,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Daily Views',
+                line: { color: '#1976d2', width: 2 },
+                marker: { size: 4 }
+            };
+
+            const layout = {
+                ...updatePlotlyTheme(),
+                title: { text: 'Daily Pageview Trend', font: { size: 14, color: 'var(--text-main)' } },
+                xaxis: { title: { text: 'Date', font: { color: 'var(--text-muted)' } } },
+                yaxis: { title: { text: 'Views', font: { color: 'var(--text-muted)' } } },
+                margin: { l: 50, r: 20, t: 40, b: 50 },
+                showlegend: false
+            };
+            Plotly.newPlot('daily-sparkline-chart', [trace], layout, { responsive: true, displayModeBar: false });
+        }
+
+        function renderReferrerMixChart(referrerShares, anomalyMonth) {
+            const months = referrerShares.map(r => r.month);
+            const referrerTypes = ['other-search', 'other-external', 'other-internal', 'link', 'direct', 'empty'];
+
+            const traces = referrerTypes.map(refType => {
+                const values = referrerShares.map(monthData => {
+                    const ref = monthData.referrers.find(r => r.prev === refType);
+                    return ref ? ref.proportion * 100 : 0;
+                });
+
+                return {
+                    x: months,
+                    y: values,
+                    name: refType,
+                    type: 'bar',
+                    stackgroup: 'one'
+                };
+            });
+
+            const layout = {
+                ...updatePlotlyTheme(),
+                title: { text: 'Referrer Share Over Time', font: { size: 14, color: 'var(--text-main)' } },
+                xaxis: { title: { text: 'Month', font: { color: 'var(--text-muted)' } } },
+                yaxis: { title: { text: 'Share (%)', font: { color: 'var(--text-muted)' } }, range: [0, 100] },
+                barmode: 'stack',
+                margin: { l: 60, r: 20, t: 40, b: 60 },
+                legend: { bgcolor: 'transparent', font: { color: 'var(--text-main)' } }
+            };
+            Plotly.newPlot('referrer-mix-chart', traces, layout, { responsive: true, displayModeBar: false });
+        }
+
+        function renderTimeSeriesChart(timeseries, forecast, anomaly) {
+            const months = timeseries.map(t => t.month);
+            const traffic = timeseries.map(t => t.n);
+
+            const traces = [{
+                x: months,
+                y: traffic,
+                type: 'bar',
+                name: 'Actual Traffic',
+                marker: { color: '#1976d2' }
+            }];
+
+            // Add baseline
+            if (anomaly.baseline_median) {
+                traces.push({
+                    x: months,
+                    y: Array(months.length).fill(anomaly.baseline_median),
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Baseline Median',
+                    line: { color: '#757575', dash: 'dash', width: 2 }
+                });
+            }
+
+            // Add forecast
+            if (forecast.forecast_n) {
+                traces.push({
+                    x: months,
+                    y: Array(months.length).fill(forecast.forecast_n),
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Forecast',
+                    line: { color: '#ff9800', width: 2 }
+                });
+            }
+
+            const layout = {
+                ...updatePlotlyTheme(),
+                title: { text: 'Traffic Over Time', font: { size: 14, color: 'var(--text-main)' } },
+                xaxis: { title: { text: 'Month', font: { color: 'var(--text-muted)' } } },
+                yaxis: { title: { text: 'Transitions', font: { color: 'var(--text-muted)' } } },
+                hovermode: 'closest',
+                margin: { l: 60, r: 20, t: 40, b: 60 },
+                showlegend: true,
+                legend: { bgcolor: 'transparent', font: { color: 'var(--text-main)' } }
+            };
+            Plotly.newPlot('timeseries-chart', traces, layout, { responsive: true, displayModeBar: false });
+        }
+
+        function closeExplainabilityPanel() {
+            document.getElementById('explainability-panel').classList.remove('open');
+            document.getElementById('overlay').classList.remove('show');
+        }
+
+        async function loadOverviewChart() {
+            try {
+                const response = await fetch('/api/anomalies/overview');
+                const data = await response.json();
+
+                if (!data.months || data.months.length === 0) return;
+
+                const traces = [
+                    {
+                        x: data.months,
+                        y: data.traffic_spike || [],
+                        name: 'Traffic Spike',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#1976d2', width: 2 },
+                        marker: { size: 6 }
+                    },
+                    {
+                        x: data.months,
+                        y: data.mix_shift || [],
+                        name: 'Mix Shift',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#ff9800', width: 2 },
+                        marker: { size: 6 }
+                    },
+                    {
+                        x: data.months,
+                        y: data.forecast_spike || [],
+                        name: 'Forecast Spike',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#f44336', width: 2 },
+                        marker: { size: 6 }
+                    }
+                ];
+
+                const layout = {
+                    ...updatePlotlyTheme(),
+                    title: { text: 'Monthly Anomaly Counts by Type', font: { size: 16, color: 'var(--text-main)' } },
+                    xaxis: { title: { text: 'Month', font: { color: 'var(--text-muted)' } } },
+                    yaxis: { title: { text: 'Number of Anomalies', font: { color: 'var(--text-muted)' } } },
+                    hovermode: 'closest',
+                    margin: { l: 60, r: 20, t: 50, b: 60 },
+                    showlegend: true,
+                    legend: { x: 0, y: 1, bgcolor: 'transparent', font: { color: 'var(--text-main)' } }
+                };
+                Plotly.newPlot('overview-chart', traces, layout, { responsive: true, displayModeBar: false });
+            } catch (error) {
+                console.error('Error loading overview chart:', error);
+            }
+        }
+
+        async function loadTopAnomalies() {
+            try {
+                const response = await fetch('/api/anomalies/top');
+                const data = await response.json();
+
+                const list = document.getElementById('top-anomalies-list');
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<p style="color: #757575;">No top anomalies available</p>';
+                    return;
+                }
+
+                list.innerHTML = data.map((a, idx) => {
+                    const typeLabel = a.anomaly_type === 'traffic_spike' ? 'Traffic spike' :
+                        a.anomaly_type === 'mix_shift' ? 'Mix shift' :
+                            a.anomaly_type === 'navigation_edge' ? 'Navigation edge' : 'Anomaly';
+
+                    return `
+                        <div class="top-anomaly-item" onclick="scrollToAnomaly('${a.prev}', '${a.curr}')">
+                            <div class="info">
+                                <strong>${a.prev || 'N/A'}</strong> → <strong>${a.curr || 'N/A'}</strong>
+                                <div class="label">${a.month} • ${typeLabel} • ${(a.deviation_ratio || 0).toFixed(1)}x deviation</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading top anomalies:', error);
+                document.getElementById('top-anomalies-list').innerHTML = '<p style="color: #757575;">Error loading top anomalies</p>';
+            }
+        }
+
+        async function loadInsights() {
+            try {
+                const response = await fetch('/api/anomalies/insights');
+                const data = await response.json();
+
+                const list = document.getElementById('insights-list');
+                if (!data.insights || data.insights.length === 0) {
+                    list.innerHTML = '<p style="color: #757575;">No insights available</p>';
+                    return;
+                }
+
+                list.innerHTML = data.insights.map(insight => `
+                    <div class="insight-item">
+                        <span class="icon">💡</span>
+                        <span>${insight}</span>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading insights:', error);
+                document.getElementById('insights-list').innerHTML = '<p style="color: #757575;">Error loading insights</p>';
+            }
+        }
+
+        function scrollToAnomaly(prev, curr) {
+            // Find and scroll to the anomaly in the table
+            const rows = document.querySelectorAll('#anomalies-table tr');
+            for (let row of rows) {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 1 && cells[0].textContent.includes(prev) && cells[1].textContent.includes(curr)) {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    row.style.background = '#e3f2fd';
+                    setTimeout(() => row.style.background = '', 2000);
+                    break;
+                }
+            }
+        }
+
+        function openHelpModal() {
+            document.getElementById('help-modal').classList.add('open');
+            document.getElementById('overlay').classList.add('show');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('help-modal').classList.remove('open');
+            document.getElementById('overlay').classList.remove('show');
+        }
+
+        function toggleTheme() {
+            const root = document.documentElement;
+            const currentTheme = root.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            root.setAttribute('data-theme', newTheme);
+            const btn = document.getElementById('theme-toggle');
+            btn.textContent = newTheme === 'dark' ? '🌙' : '☀';
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Initialize
+        loadStats();
+        loadAnomalies();
+        loadOverviewChart();
+        loadTopAnomalies();
+        loadInsights();
+
+        // Load theme preference
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('theme-toggle').textContent = savedTheme === 'dark' ? '🌙' : '☀';
+
+        // Add entrance animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.stat-card, .hero-box, .overview-chart-card, .top-anomalies-card, .insights-card, .filters-card, .table-card');
+            cards.forEach((card, index) => {
+                card.classList.add('fade-in');
+                if (index > 0) {
+                    card.classList.add(`fade-in-delay-${Math.min(index, 3)}`);
+                }
+            });
+        });
+
+        // Update Plotly charts for dark theme
+        function updatePlotlyTheme() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            const plotlyLayout = {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: theme === 'dark' ? '#f9fafb' : '#0f172a' },
+                xaxis: {
+                    gridcolor: theme === 'dark' ? 'rgba(148, 163, 184, 0.2)' : 'rgba(148, 163, 184, 0.1)',
+                    linecolor: theme === 'dark' ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.2)'
+                },
+                yaxis: {
+                    gridcolor: theme === 'dark' ? 'rgba(148, 163, 184, 0.2)' : 'rgba(148, 163, 184, 0.1)',
+                    linecolor: theme === 'dark' ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.2)'
+                }
+            };
+            return plotlyLayout;
+        }
+        function exportCSV() {
+            const type = document.getElementById('filter-type').value;
+            const month = document.getElementById('filter-month').value;
+            const confidence = document.getElementById('filter-confidence').value;
+
+            const params = new URLSearchParams();
+            if (type) params.append('anomaly_type', type);
+            if (month) params.append('month', month);
+            if (confidence) params.append('min_confidence', confidence);
+
+            window.location.href = `/api/export/anomalies.csv?${params.toString()}`;
+        }
+    </script>
+</body>
+
+</html>
