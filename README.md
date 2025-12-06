@@ -969,10 +969,10 @@ pip install -r requirements.txt
 
 ### How We Split the Work
 
-- **Harshith**: Statistical detector, performance tuning, configuration
-- **Aryaman**: Dashboard UI/UX, Flask backend, data visualization  
-- **Dirgha**: ETL pipeline, Spark configuration, clustering detector
-
+- **Harshith**: Harshith: Led anomaly detection research, implemented the statistical detector, and handled performance + configuration across the system.
+- **Aryaman**: Led user-facing components, developing the dashboard UI/UX, backend API, and all visualization modules.
+- **Dirgha**: Led data engineering components, creating the ETL workflow, Spark infrastructure, and the clustering anomaly detection model.
+- 
 ### Design Decisions We Made
 
 1. **Why Parquet instead of keeping TSV?**
