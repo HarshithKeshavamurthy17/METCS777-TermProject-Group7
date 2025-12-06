@@ -41,8 +41,12 @@ def fetch_daily_pageviews(page_title: str, start: str, end: str, project: str = 
     # Build API URL
     url = f"https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/{project}/all-access/all-agents/{encoded_title}/daily/{start}/{end}"
     
+    headers = {
+        'User-Agent': 'WikipediaClickstreamAnomalyDetector/1.0 (https://github.com/HarshithKeshavamurthy17/METCS777-TermProject-Group7; contact@example.com)'
+    }
+    
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         
         data = response.json()

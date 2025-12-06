@@ -1,12 +1,13 @@
 """Statistical anomaly detector using MAD and Z-scores."""
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import (
-    col, when, abs, lit, exp, pow, struct, monotonically_increasing_id,
+    col, when, abs as spark_abs, lit, exp, pow, struct, monotonically_increasing_id,
     udf, array
 )
 from pyspark.sql.types import DoubleType, StructType, StructField, StringType
 from typing import Dict
 import uuid
+import math
 
 
 class StatisticalDetector:
@@ -43,29 +44,25 @@ class StatisticalDetector:
             return 0.0
         return (n - median) / (mad + self.mad_epsilon)
     
-    @staticmethod
-    def calculate_confidence(z_score: float, ratio: float, z_score_threshold: float, ratio_threshold: float) -> float:
+    def calculate_confidence(self, z_score: float, ratio: float) -> float:
         """
         Calculate confidence score using sigmoid function.
         
         Args:
             z_score: Robust Z-score
             ratio: Deviation ratio (n / baseline_median)
-            z_score_threshold: Threshold for Z-score
-            ratio_threshold: Threshold for ratio
             
         Returns:
             Confidence score between 0 and 1
         """
         # Normalize inputs
-        z_norm = abs(z_score) / max(z_score_threshold, 1.0)
-        ratio_norm = min(ratio / max(ratio_threshold, 1.0), 10.0)
-        
-        # Combined signal
-        combined = (z_norm + ratio_norm) / 2.0
+        z_norm = min(abs(z_score) / max(self.z_score_threshold, 1.0), 10.0)
+        ratio_norm = min(ratio / max(self.ratio_threshold, 1.0), 10.0)
         
         # Sigmoid to map to [0, 1]
-        confidence = 1.0 / (1.0 + exp(-5.0 * (combined - 0.5)))
+        # Center at 1.0 (barely anomaly) -> 0.5 confidence
+        # Slope 1.0 -> gentler curve
+        confidence = 1.0 / (1.0 + math.exp(-1.0 * (combined - 1.0)))
         
         return min(max(confidence, 0.0), 1.0)
     
@@ -111,22 +108,32 @@ class StatisticalDetector:
         # Filter anomalies
         anomalies = anomalies.filter(
             (col("deviation_ratio") >= self.ratio_threshold) |
-            (abs(col("z_score")) >= self.z_score_threshold)
+            (spark_abs(col("z_score")) >= self.z_score_threshold)
         )
         
-        # Calculate confidence using UDF
-        # Calculate confidence using UDF
+        # Calculate confidence using UDF - make it standalone to avoid serialization issues
         z_thresh = self.z_score_threshold
         r_thresh = self.ratio_threshold
         
         def calc_conf(z, r):
             try:
-                return float(StatisticalDetector.calculate_confidence(
-                    float(z) if z else 0.0, 
-                    float(r) if r else 0.0,
-                    z_thresh,
-                    r_thresh
-                ))
+                z_val = float(z) if z else 0.0
+                r_val = float(r) if r else 0.0
+                
+                # Normalize inputs
+                z_norm = min(abs(z_val) / max(z_thresh, 1.0), 10.0)
+                ratio_norm = min(r_val / max(r_thresh, 1.0), 10.0)
+                
+                # Combined signal
+                combined = (z_norm + ratio_norm) / 2.0
+                
+                # Sigmoid to map to [0, 1]
+                # Center at 1.0 (barely anomaly) -> 0.5 confidence
+                # Slope 1.0 -> gentler curve
+                import math
+                confidence = 1.0 / (1.0 + math.exp(-1.0 * (combined - 1.0)))
+                
+                return float(min(max(confidence, 0.0), 1.0))
             except:
                 return 0.0
         

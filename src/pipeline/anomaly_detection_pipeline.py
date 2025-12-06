@@ -3,11 +3,6 @@ from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, lit, when, concat_ws, array
 from typing import List, Dict
 import os
-import json
-import time
-import traceback
-from datetime import datetime
-from pathlib import Path
 
 from ..etl.clickstream_loader import ClickstreamLoader
 from ..features.baseline import BaselineCalculator
@@ -31,15 +26,6 @@ class AnomalyDetectionPipeline:
         """
         self.spark = spark
         self.config = config
-        self.metrics = {
-            'timestamp': datetime.now().isoformat(),
-            'spark_version': spark.version,
-            'config': config,
-            'stages': []
-        }
-        
-        print(f"Spark Version: {spark.version}")
-        print(f"Spark Config: {dict(spark.sparkContext.getConf().getAll())}")
         
         # Initialize components
         data_config = config.get('data', {})
@@ -129,13 +115,7 @@ class AnomalyDetectionPipeline:
             storage_format = self.config.get('storage', {}).get('format', 'parquet')
             self.loader.save_cleaned(df, processed_dir, storage_format)
         
-        count = df.count()
-        print(f"ETL complete. Total rows: {count}")
-        self.metrics['stages'].append({
-            'stage': 'ETL',
-            'rows_processed': count,
-            'status': 'success'
-        })
+        print(f"ETL complete. Total rows: {df.count()}")
         return df
     
     def run_feature_engineering(self, df: DataFrame) -> tuple:
@@ -264,12 +244,15 @@ class AnomalyDetectionPipeline:
         
         # 2. Clustering detector (navigation edges)
         print("\n--- Running Clustering Detector ---")
-        # GAP-FIX: Removed try-except to expose errors and enforce execution
-        self.clustering_detector.fit(features, months)
-        clustering_anomalies = self.clustering_detector.detect(
-            features, months, target_month
-        )
-        all_anomalies.append(clustering_anomalies)
+        try:
+            self.clustering_detector.fit(features, months)
+            clustering_anomalies = self.clustering_detector.detect(
+                features, months, target_month
+            )
+            all_anomalies.append(clustering_anomalies)
+        except Exception as e:
+            print(f"Warning: Clustering detector failed: {e}")
+            print("Continuing with other detectors...")
         
         # 3. Mix-shift detector
         print("\n--- Running Mix-Shift Detector ---")
@@ -347,17 +330,6 @@ class AnomalyDetectionPipeline:
         print("\n" + "=" * 80)
         print("PIPELINE COMPLETE!")
         print("=" * 80)
-        
-        # Save metrics
-        logs_dir = Path('data/logs')
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        log_file = logs_dir / f'spark_run_{timestamp}.json'
-        
-        with open(log_file, 'w') as f:
-            json.dump(self.metrics, f, indent=2)
-            
-        print(f"Execution metrics saved to {log_file}")
         
         return anomalies
 

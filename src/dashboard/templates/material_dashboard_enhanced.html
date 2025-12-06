@@ -1269,9 +1269,9 @@
                 <button id="help-btn" class="btn-primary"
                     style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);"
                     onclick="openHelpModal()">?</button>
-                <button id="theme-toggle" class="btn-primary"
+                <!-- <button id="theme-toggle" class="btn-primary"
                     style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);"
-                    onclick="toggleTheme()">☀</button>
+                    onclick="toggleTheme()">☀</button> -->
             </div>
         </div>
     </div>
@@ -1303,14 +1303,14 @@
                 <div class="stat-card-value" id="mix-shifts">-</div>
                 <div class="stat-card-subtitle">Pages whose visitors started coming from new sources.</div>
             </div>
-            <div class="stat-card">
+            <!-- <div class="stat-card">
                 <div class="stat-card-header">
                     <span class="stat-card-title">📊 Avg Confidence</span>
                     <span class="material-icons stat-card-icon">assessment</span>
                 </div>
                 <div class="stat-card-value" id="avg-confidence">-</div>
                 <div class="stat-card-subtitle">Average certainty across all detections.</div>
-            </div>
+            </div> -->
         </div>
 
         <!-- Hero Story Box -->
@@ -1372,9 +1372,6 @@
                 <input type="number" id="filter-confidence" min="0" max="1" step="0.1" value="0.5"
                     onchange="loadAnomalies()">
                 <button class="btn-primary" onclick="loadAnomalies()">Apply Filters</button>
-                <button class="btn-primary"
-                    style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.3); color: #10b981;"
-                    onclick="exportCSV()">Export CSV</button>
             </div>
         </div>
 
@@ -1390,7 +1387,7 @@
                         <th>Deviation</th>
                         <th>Forecast</th>
                         <th>Trend</th>
-                        <th>Confidence</th>
+                        <!-- <th>Confidence</th> -->
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -1575,18 +1572,23 @@
                     const badgeClass = a.anomaly_type === 'traffic_spike' ? 'badge-traffic-spike' :
                         a.anomaly_type === 'mix_shift' ? 'badge-mix-shift' : 'badge-navigation-edge';
 
-                    // Forecast display
+                    // Forecast display - always show actual value, show prediction if available
                     const hasForecast = a.forecast_flag !== undefined && a.forecast_flag !== null;
+                    const hasForecastValue = a.forecast_n !== undefined && a.forecast_n !== null && a.forecast_n > 0;
                     let forecastDisplay = '<span style="color: #757575;">N/A</span>';
 
-                    if (hasForecast) {
+                    if (hasForecast && hasForecastValue) {
                         if (a.forecast_flag) {
                             forecastDisplay = `<span style="color: #f44336; font-weight: bold;">⚠ Forecast Spike</span><br>
                                 <small style="font-size: 0.75rem;">Pred: ${(a.forecast_n || 0).toFixed(0)} | Actual: ${a.n || 0}</small>`;
                         } else {
                             forecastDisplay = `<span style="color: #4caf50;">✓ Normal</span><br>
-                                <small style="font-size: 0.75rem;">Pred: ${(a.forecast_n || 0).toFixed(0)}</small>`;
+                                <small style="font-size: 0.75rem;">Pred: ${(a.forecast_n || 0).toFixed(0)} | Actual: ${a.n || 0}</small>`;
                         }
+                    } else if (a.n !== undefined && a.n !== null) {
+                        // Show actual value even without forecast
+                        forecastDisplay = `<span style="color: #4caf50;">✓ Normal</span><br>
+                            <small style="font-size: 0.75rem;">Actual: ${a.n || 0}</small>`;
                     }
 
                     // Generate "What Happened?" description
@@ -1608,12 +1610,12 @@
                             <td>${(a.deviation_ratio || 0).toFixed(2)}x</td>
                             <td>${forecastDisplay}</td>
                             <td>${sparklineSVG}</td>
-                            <td>
+                            <!-- <td>
                                 <div class="confidence-bar">
                                     <div class="confidence-fill" style="width: ${(a.confidence || 0) * 100}%"></div>
                                 </div>
                                 ${(a.confidence || 0).toFixed(2)}
-                            </td>
+                            </td> -->
                             <td>
                                 <button class="btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="event.stopPropagation(); openExplainabilityPanel(${idx})">
                                     View Details
@@ -1624,7 +1626,7 @@
                 }).join('');
             } catch (error) {
                 console.error('Error loading anomalies:', error);
-                tbody.innerHTML = `<tr><td colspan="9" class="loading" style="color: #f44336;">Error: ${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="loading" style="color: #f44336;">Error: ${error.message}</td></tr>`;
             }
         }
 
@@ -1652,20 +1654,6 @@
                 if (!response.ok) throw new Error('Failed to load details');
 
                 const details = await response.json();
-
-                // GAP-FIX: Fetch daily pageviews
-                try {
-                    if (anomaly.curr && anomaly.month) {
-                        const dailyResponse = await fetch(`/api/timeseries?daily=true&curr=${encodeURIComponent(anomaly.curr)}&month=${encodeURIComponent(anomaly.month)}`);
-                        if (dailyResponse.ok) {
-                            const dailyData = await dailyResponse.json();
-                            details.daily_pageviews = dailyData;
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error fetching daily pageviews:', e);
-                }
-
                 anomalyDetailsCache[cacheKey] = details;
                 renderPanelContent(details);
             } catch (error) {
@@ -1963,43 +1951,61 @@
 
                 if (!data.months || data.months.length === 0) return;
 
+                // Format months to readable format (e.g., "2023-11" -> "Nov 2023")
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const formattedMonths = data.months.map(month => {
+                    if (typeof month === 'string' && month.match(/^\d{4}-\d{2}$/)) {
+                        const [year, monthNum] = month.split('-');
+                        const monthIdx = parseInt(monthNum) - 1;
+                        return `${monthNames[monthIdx]} ${year}`;
+                    }
+                    return month;
+                });
+
                 const traces = [
                     {
-                        x: data.months,
+                        x: formattedMonths,
                         y: data.traffic_spike || [],
                         name: 'Traffic Spike',
                         type: 'scatter',
                         mode: 'lines+markers',
                         line: { color: '#1976d2', width: 2 },
-                        marker: { size: 6 }
+                        marker: { size: 6, symbol: 'square' }
                     },
                     {
-                        x: data.months,
+                        x: formattedMonths,
                         y: data.mix_shift || [],
                         name: 'Mix Shift',
                         type: 'scatter',
                         mode: 'lines+markers',
                         line: { color: '#ff9800', width: 2 },
-                        marker: { size: 6 }
+                        marker: { size: 6, symbol: 'circle' }
                     },
                     {
-                        x: data.months,
+                        x: formattedMonths,
                         y: data.forecast_spike || [],
                         name: 'Forecast Spike',
                         type: 'scatter',
                         mode: 'lines+markers',
                         line: { color: '#f44336', width: 2 },
-                        marker: { size: 6 }
+                        marker: { size: 6, symbol: 'circle' }
                     }
                 ];
 
                 const layout = {
                     ...updatePlotlyTheme(),
                     title: { text: 'Monthly Anomaly Counts by Type', font: { size: 16, color: 'var(--text-main)' } },
-                    xaxis: { title: { text: 'Month', font: { color: 'var(--text-muted)' } } },
-                    yaxis: { title: { text: 'Number of Anomalies', font: { color: 'var(--text-muted)' } } },
+                    xaxis: {
+                        title: { text: 'Month', font: { color: 'var(--text-muted)' } },
+                        type: 'category',  // Treat as categories, not dates
+                        tickangle: -45
+                    },
+                    yaxis: {
+                        title: { text: 'Number of Anomalies', font: { color: 'var(--text-muted)' } },
+                        range: [0, null]  // Start from 0
+                    },
                     hovermode: 'closest',
-                    margin: { l: 60, r: 20, t: 50, b: 60 },
+                    margin: { l: 60, r: 20, t: 50, b: 80 },
                     showlegend: true,
                     legend: { x: 0, y: 1, bgcolor: 'transparent', font: { color: 'var(--text-main)' } }
                 };
@@ -2104,10 +2110,11 @@
         loadTopAnomalies();
         loadInsights();
 
-        // Load theme preference
-        const savedTheme = localStorage.getItem('theme') || 'dark';
+        // Load theme preference - FORCE DARK MODE
+        // const savedTheme = localStorage.getItem('theme') || 'dark';
+        const savedTheme = 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
-        document.getElementById('theme-toggle').textContent = savedTheme === 'dark' ? '🌙' : '☀';
+        // document.getElementById('theme-toggle').textContent = savedTheme === 'dark' ? '🌙' : '☀';
 
         // Add entrance animations
         document.addEventListener('DOMContentLoaded', () => {
@@ -2137,18 +2144,6 @@
                 }
             };
             return plotlyLayout;
-        }
-        function exportCSV() {
-            const type = document.getElementById('filter-type').value;
-            const month = document.getElementById('filter-month').value;
-            const confidence = document.getElementById('filter-confidence').value;
-
-            const params = new URLSearchParams();
-            if (type) params.append('anomaly_type', type);
-            if (month) params.append('month', month);
-            if (confidence) params.append('min_confidence', confidence);
-
-            window.location.href = `/api/export/anomalies.csv?${params.toString()}`;
         }
     </script>
 </body>

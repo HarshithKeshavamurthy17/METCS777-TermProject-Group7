@@ -1,32 +1,8 @@
-# Core dependencies
-pyspark==3.5.0
-pandas==2.1.4
-numpy==1.26.2
-scipy==1.11.4
-
-# Web framework and API
-flask==3.0.0
-flask-cors==4.0.0
-gunicorn==21.2.0
-
-# Data processing
-pyarrow==14.0.1
-delta-spark==3.0.0
-
-# Visualization
-plotly==5.18.0
-dash==2.14.2
-dash-cytoscape==1.0.3
-
-# Utilities
-python-dotenv==1.0.0
-requests==2.31.0
-tqdm==4.66.1
-
-# Testing
-pytest==7.4.3
-pytest-spark==0.6.0
-
-# Forecasting (Required for full demo)
-prophet==1.1.5
-statsmodels==0.14.0
+pyspark>=3.5.0
+flask>=3.0.0
+flask-cors>=4.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+requests>=2.31.0
+pyyaml>=6.0

@@ -3,7 +3,6 @@ from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, when, sum as spark_sum, count
 from typing import List, Dict
 import pandas as pd
-from src.evaluation.ground_truth_fetcher import get_ground_truth
 
 
 class AnomalyEvaluator:
@@ -132,33 +131,14 @@ def evaluate_anomalies(anomalies_path: str, ground_truth_path: str = None):
             print(f"{i}. {anomaly.get('prev', 'N/A')} -> {anomaly.get('curr', 'N/A')} "
                   f"(confidence: {anomaly.get('confidence', 0):.3f})")
         
-        # If ground truth provided or can be fetched
-        ground_truth_pages = []
+        # If ground truth provided, calculate precision
         if ground_truth_path:
-             # Load ground truth (simplified - would be more structured in practice)
+            # Load ground truth (simplified - would be more structured in practice)
             ground_truth_df = spark.read.parquet(ground_truth_path)
             ground_truth_pages = ground_truth_df.select("page").distinct().rdd.map(lambda r: r[0]).collect()
-        else:
-            # Try to fetch ground truth for the analyzed months
-            # We need to know which month we are analyzing. 
-            # Assuming anomalies_df has a 'month' column, we can take the most frequent one or iterate.
-            # For simplicity, let's take the first month found.
-            try:
-                months = anomalies_df.select("month").distinct().collect()
-                if months:
-                    target_month = months[0][0]
-                    print(f"\nFetching ground truth for month: {target_month}")
-                    from .ground_truth_fetcher import get_ground_truth
-                    ground_truth_pages = get_ground_truth(target_month)
-            except Exception as e:
-                print(f"Could not automatically fetch ground truth: {e}")
-
-        if ground_truth_pages:
-            print(f"Loaded {len(ground_truth_pages)} ground truth pages")
+            
             precision_50 = evaluator.precision_at_k(anomalies_df, ground_truth_pages, k=50)
-            print(f"Precision@50: {precision_50:.3f}")
-        else:
-            print("\nNo ground truth available for precision calculation.")
+            print(f"\nPrecision@50: {precision_50:.3f}")
         
     finally:
         spark.stop()
