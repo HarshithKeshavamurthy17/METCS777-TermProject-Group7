@@ -46,7 +46,7 @@ def init_app():
 @app.route('/')
 def index():
     """Main dashboard page."""
-    return render_template('index.html')
+    return render_template('material_dashboard_enhanced.html')
 
 
 @app.route('/api/anomalies')
