@@ -14,7 +14,7 @@ build/
 # Data files
 data/raw/*
 data/processed/*
-data/anomalies/*
+# data/anomalies/*  # Include anomaly results for easy testing
 !data/.gitkeep
 
 # Jupyter
