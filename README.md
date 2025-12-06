@@ -52,7 +52,7 @@ You should see something like `java version "11.0.x"` or `"1.8.0_xxx"`.
 
 ---
 
-## 🚀 COMPLETE SETUP & RUN GUIDE 
+## COMPLETE SETUP & RUN GUIDE 
 
 **This section walks through EVERY SINGLE STEP from scratch. Follow this if you want to run the entire project without missing anything.**
 
@@ -131,7 +131,7 @@ data/
 ...
 ```
 
-✅ **If you see these files, you're good to go!**
+**If you see these files, you're good to go!**
 
 ---
 
@@ -171,7 +171,7 @@ Your terminal prompt should now start with `(venv)`. Example:
 (venv) user@computer:~/METCS777-TermProject-Group7$
 ```
 
-✅ **If you see (venv), it worked!**
+**If you see (venv), it worked!**
 
 **Step 2.3: Upgrade pip (optional but recommended)**
 ```bash
@@ -215,11 +215,11 @@ python -c "import flask, pandas, numpy; print('✓ All libraries loaded!')"
 ✓ All libraries loaded!
 ```
 
-✅ **If both print checkmarks, your environment is ready!**
+**If both print checkmarks, your environment is ready!**
 
 ---
 
-### Part 3: Check the Data (1 minute)
+### Part 3: Check the Data 
 
 We've included pre-generated anomaly results so you don't need to download 60GB of data or run the full pipeline!
 
@@ -244,13 +244,13 @@ ls -lh data/anomalies/anomalies.parquet
 -rw-r--r--  1 user  staff   110K Dec  5 23:37 anomalies.parquet
 ```
 
-✅ **If you see the `anomalies.parquet` file, all 2,346 pre-detected anomalies are ready to go!**
+**If you see the `anomalies.parquet` file, all 2,346 pre-detected anomalies are ready to go!**
 
 ---
 
-### Part 4: Start the Dashboard (2 minutes)
+### Part 4: Start the Dashboard 
 
-> **⚠️ CRITICAL: DO NOT SKIP TO THIS STEP!**  
+> ** CRITICAL: DO NOT SKIP TO THIS STEP!**  
 > You MUST complete Part 2 (virtual environment setup) first!  
 > If you skip it, you'll get "No module named 'pyspark'" errors.
 
@@ -318,7 +318,7 @@ WARNING: This is a development server...
 Press CTRL+C to quit
 ```
 
-✅ **If you see "Running on http://127.0.0.1:5002", it's working!**
+**If you see "Running on http://127.0.0.1:5002", it's working!**
 
 > **Note:** You may see some SSL/TLS errors in the terminal after this - ignore them.  
 > They're just random connection attempts and don't affect the dashboard.
@@ -330,10 +330,10 @@ Press CTRL+C to quit
 http://127.0.0.1:5002
 ```
 
-**⚠️ Common mistakes to avoid:**
-- ❌ Don't use `https://` (it's `http://`)
-- ❌ Don't use `localhost` (Chrome may redirect to HTTPS)
-- ✅ Use exactly: `http://127.0.0.1:5002`
+**Common mistakes to avoid:**
+- Don't use `https://` (it's `http://`)
+- Don't use `localhost` (Chrome may redirect to HTTPS)
+- Use exactly: `http://127.0.0.1:5002`
 
 **You should see:**
 - A dark-themed dashboard
@@ -341,7 +341,7 @@ http://127.0.0.1:5002
 - Charts and a filterable table
 - Top anomalies section
 
-✅ **If you see the dashboard, CONGRATULATIONS! You're done!**
+**If you see the dashboard, CONGRATULATIONS! You're done!**
 
 **To stop the dashboard:**
 Press `Ctrl+C` in the terminal
@@ -350,7 +350,7 @@ Press `Ctrl+C` in the terminal
 
 ### Part 5 (Optional): Download Fresh Data & Run Full Pipeline
 
-**⚠️ WARNING: This downloads ~10GB and takes 20-40 minutes. Only do this if you want to process your own data!**
+** WARNING: This downloads ~10GB and takes 20-40 minutes. Only do this if you want to process your own data!**
 
 **Step 5.1: Download Wikipedia clickstream data**
 
@@ -631,7 +631,7 @@ You should see output like:
 
 You should see our interactive dashboard with all the anomalies we detected!
 
-**⚠️ Troubleshooting:**
+** Troubleshooting:**
 
 If you get **"Port 5000 already in use"**:
 ```bash
@@ -660,7 +660,7 @@ This downloads 2 months of data (~3GB). It'll be saved in `data/raw/`.
 
 **Note:** Each month is about 1.5GB compressed, so downloading 6 months takes a while (10-30 minutes depending on your internet). We recommend starting with just 1-2 months for testing.
 
-**⚠️ Troubleshooting:**
+** Troubleshooting:**
 
 If the download fails:
 - Check your internet connection
@@ -704,7 +704,7 @@ Total anomalies: 1,290
 Saved to data/anomalies/month=2023-09/
 ```
 
-**⚠️ Troubleshooting:**
+** Troubleshooting:**
 
 If you get **"OutOfMemoryError: Java heap space"**:
 1. Open `config/config.yaml`
@@ -795,8 +795,8 @@ Here's how we organized everything:
 │   ├── processed/          # Cleaned Parquet files
 │   └── anomalies/          # Our detection results
 │
-├── run_pipeline.py         # ⭐ Run this to process data
-├── run_dashboard.py        # ⭐ Run this to see results
+├── run_pipeline.py         #  Run this to process data
+├── run_dashboard.py        #  Run this to see results
 └── requirements.txt        # All Python dependencies
 ```
 
@@ -825,7 +825,7 @@ Baseline median: 101
 Current month: 1,250
 Deviation: 1,250 / 101 = 12.4x
 Z-score: 87.3
-Result: ⚠️ ANOMALY (way above threshold)
+Result:  ANOMALY (way above threshold)
 ```
 
 ### 2. Mix-Shift Detector (Traffic Source Changes)
@@ -848,12 +848,12 @@ Previous month referrers:
   - other: 10%
 
 Current month:
-  - Main_Page: 55%  ⬆️ +35 points!
+  - Main_Page: 55%   +35 points!
   - Google: 25%
   - other-search: 15%
   - other: 5%
 
-Result: ⚠️ MIX-SHIFT (Main_Page became dominant)
+Result:  MIX-SHIFT (Main_Page became dominant)
 Reason: Probably featured on Wikipedia's front page
 ```
 
@@ -1001,7 +1001,7 @@ pip install -r requirements.txt
 
 ### How We Split the Work
 
-- **Harshith**: Harshith: Led anomaly detection research, implemented the statistical detector, and handled performance + configuration across the system.
+- **Harshith**: Led anomaly detection research, implemented the statistical detector, and handled performance + configuration across the system.
 - **Aryaman**: Led user-facing components, developing the dashboard UI/UX, backend API, and all visualization modules.
 - **Dirgha**: Led data engineering components, creating the ETL workflow, Spark infrastructure, and the clustering anomaly detection model.
 - 
@@ -1103,8 +1103,8 @@ python run_dashboard.py
 open http://localhost:5000
 ```
 
-That's it! You should now see 2,346 Wikipedia anomalies ready to explore. 🚀
+
 
 ---
 
-**Built with ☕ and 📊 by Team 7**
+**Built by Team 7**
