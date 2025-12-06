@@ -219,36 +219,32 @@ python -c "import flask, pandas, numpy; print('✓ All libraries loaded!')"
 
 ---
 
-### Part 3: Check the Data 
+### Part 3: Check the Data (1 minute)
 
-We've included pre-generated anomaly results so you don't need to download 60GB of data!
+We've included pre-generated anomaly results so you don't need to download 60GB of data or run the full pipeline!
 
 **Verify the data exists:**
 ```bash
 ls data/anomalies/
 ```
 
-**You should see folders like:**
-```
-month=2023-09/
-month=2023-10/
-month=2023-11/
-...
-```
-
-**Check one folder:**
-```bash
-ls data/anomalies/month\=2023-09/
-```
-
 **You should see:**
 ```
-part-00000-xxx.parquet
-part-00001-xxx.parquet
-...
+_SUCCESS
+anomalies.parquet
 ```
 
-✅ **If you see .parquet files, the data is there!**
+**Verify the file size (should be ~110KB):**
+```bash
+ls -lh data/anomalies/anomalies.parquet
+```
+
+**You should see something like:**
+```
+-rw-r--r--  1 user  staff   110K Dec  5 23:37 anomalies.parquet
+```
+
+✅ **If you see the `anomalies.parquet` file, all 2,346 pre-detected anomalies are ready to go!**
 
 ---
 
