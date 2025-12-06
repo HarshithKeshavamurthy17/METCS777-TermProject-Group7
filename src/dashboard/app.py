@@ -38,8 +38,9 @@ def init_app():
     storage_config = config.get('storage', {})
     anomalies_storage = AnomaliesStorage(
         spark,
-        data_config.get('anomalies_dir', 'data/anomalies'),
-        storage_config.get('format', 'parquet')
+        data_config.get('anomalies_path', 'data/anomalies'),
+        processed_path=data_config.get('processed_path', 'data/processed'),
+        format=storage_config.get('format', 'parquet')
     )
 
 
@@ -103,8 +104,8 @@ def get_anomaly_stats():
             'total': len(pdf),
             'by_type': pdf.groupby('anomaly_type').size().to_dict(),
             'by_month': pdf.groupby('month').size().to_dict(),
-            'avg_confidence': float(pdf['confidence'].mean()),
-            'top_anomalies': pdf.nlargest(10, 'confidence')[['prev', 'curr', 'anomaly_type', 'confidence']].to_dict('records')
+            'avg_confidence': float(pdf['confidence'].mean()) if not pdf.empty else 0.0,
+            'top_anomalies': pdf.nlargest(10, 'confidence')[['prev', 'curr', 'anomaly_type', 'confidence']].to_dict('records') if not pdf.empty else []
         }
         
         return jsonify(stats)
@@ -126,6 +127,17 @@ def get_anomaly_detail(anomaly_id):
         # Get raw anomaly data
         anomaly_data = anomaly_df.toPandas().iloc[0].to_dict()
         
+        # Fetch historical data
+        timeseries = anomalies_storage.get_historical_data(
+            anomaly_data.get('prev'), 
+            anomaly_data.get('curr')
+        )
+        
+        # Fetch referrer data
+        referrer_shares = anomalies_storage.get_referrer_data(
+            anomaly_data.get('curr')
+        )
+        
         # Construct response with expected structure
         response = {
             'anomaly': anomaly_data,
@@ -141,8 +153,8 @@ def get_anomaly_detail(anomaly_id):
                     'status': 'anomaly' if anomaly_data.get('forecast_flag') else 'normal'
                 }
             },
-            'timeseries_6m': [], # Placeholder - would need to fetch from features
-            'referrer_shares': [], # Placeholder - would need to fetch from features
+            'timeseries_6m': timeseries,
+            'referrer_shares': referrer_shares,
             'forecast_values': {
                 'forecast_n': float(anomaly_data.get('forecast_n', 0)) if anomaly_data.get('forecast_n') else None,
                 'forecast_error': 0.0,
