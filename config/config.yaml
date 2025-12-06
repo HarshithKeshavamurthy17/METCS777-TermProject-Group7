@@ -8,6 +8,7 @@ data:
   pageviews_path: "data/pageviews"
   ground_truth_path: "data/ground_truth"
   logs_path: "data/logs"
+  months: ["2023-10", "2023-11"]
 
 # Spark Configuration
 spark:
