@@ -43,20 +43,23 @@ class StatisticalDetector:
             return 0.0
         return (n - median) / (mad + self.mad_epsilon)
     
-    def calculate_confidence(self, z_score: float, ratio: float) -> float:
+    @staticmethod
+    def calculate_confidence(z_score: float, ratio: float, z_score_threshold: float, ratio_threshold: float) -> float:
         """
         Calculate confidence score using sigmoid function.
         
         Args:
             z_score: Robust Z-score
             ratio: Deviation ratio (n / baseline_median)
+            z_score_threshold: Threshold for Z-score
+            ratio_threshold: Threshold for ratio
             
         Returns:
             Confidence score between 0 and 1
         """
         # Normalize inputs
-        z_norm = abs(z_score) / max(self.z_score_threshold, 1.0)
-        ratio_norm = min(ratio / max(self.ratio_threshold, 1.0), 10.0)
+        z_norm = abs(z_score) / max(z_score_threshold, 1.0)
+        ratio_norm = min(ratio / max(ratio_threshold, 1.0), 10.0)
         
         # Combined signal
         combined = (z_norm + ratio_norm) / 2.0
@@ -112,9 +115,18 @@ class StatisticalDetector:
         )
         
         # Calculate confidence using UDF
+        # Calculate confidence using UDF
+        z_thresh = self.z_score_threshold
+        r_thresh = self.ratio_threshold
+        
         def calc_conf(z, r):
             try:
-                return float(self.calculate_confidence(float(z) if z else 0.0, float(r) if r else 0.0))
+                return float(StatisticalDetector.calculate_confidence(
+                    float(z) if z else 0.0, 
+                    float(r) if r else 0.0,
+                    z_thresh,
+                    r_thresh
+                ))
             except:
                 return 0.0
         

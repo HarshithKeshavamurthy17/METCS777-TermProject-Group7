@@ -34,7 +34,8 @@ class MixShiftDetector:
         self.min_referrers = min_referrers
         self.top_referrer_change_threshold = top_referrer_change_threshold
     
-    def calculate_js_divergence(self, p: np.ndarray, q: np.ndarray) -> float:
+    @staticmethod
+    def calculate_js_divergence(p: np.ndarray, q: np.ndarray) -> float:
         """
         Calculate Jensen-Shannon divergence.
         
@@ -105,6 +106,8 @@ class MixShiftDetector:
         # Calculate JS divergence using UDF
         from pyspark.sql.functions import udf
         
+        min_refs = self.min_referrers
+        
         def compute_js_div(target_list, baseline_list):
             """Compute JS divergence from lists."""
             # Convert to dictionaries
@@ -113,14 +116,14 @@ class MixShiftDetector:
             
             # Get all referrers
             all_refs = set(target_dict.keys()) | set(baseline_dict.keys())
-            if len(all_refs) < self.min_referrers:
+            if len(all_refs) < min_refs:
                 return 0.0
             
             # Create aligned arrays
             p = np.array([target_dict.get(ref, 0.0) for ref in sorted(all_refs)])
             q = np.array([baseline_dict.get(ref, 0.0) for ref in sorted(all_refs)])
             
-            return self.calculate_js_divergence(p, q)
+            return MixShiftDetector.calculate_js_divergence(p, q)
         
         js_udf = udf(compute_js_div, DoubleType())
         
@@ -129,21 +132,27 @@ class MixShiftDetector:
         baseline_top = baseline_props.groupBy("curr") \
             .agg(spark_max("baseline_proportion").alias("baseline_top_prop"))
         
-        baseline_top_ref = baseline_props.join(
-            baseline_top,
-            (baseline_props.curr == baseline_top.curr) &
-            (baseline_props.baseline_proportion == baseline_top.baseline_top_prop)
-        ).select("curr", col("prev").alias("baseline_top_ref"), "baseline_top_prop")
+        baseline_props_alias = baseline_props.alias("bp")
+        baseline_top_alias = baseline_top.alias("bt")
+        
+        baseline_top_ref = baseline_props_alias.join(
+            baseline_top_alias,
+            (col("bp.curr") == col("bt.curr")) &
+            (col("bp.baseline_proportion") == col("bt.baseline_top_prop"))
+        ).select(col("bp.curr"), col("bp.prev").alias("baseline_top_ref"), col("bt.baseline_top_prop"))
         
         # Get top referrer for target
         target_top = target_dist.groupBy("curr") \
             .agg(spark_max("proportion").alias("target_top_prop"))
         
-        target_top_ref = target_dist.join(
-            target_top,
-            (target_dist.curr == target_top.curr) &
-            (target_dist.proportion == target_top.target_top_prop)
-        ).select("curr", col("prev").alias("target_top_ref"), "target_top_prop", "total_n")
+        target_dist_alias = target_dist.alias("td")
+        target_top_alias = target_top.alias("tt")
+        
+        target_top_ref = target_dist_alias.join(
+            target_top_alias,
+            (col("td.curr") == col("tt.curr")) &
+            (col("td.proportion") == col("tt.target_top_prop"))
+        ).select(col("td.curr"), col("td.prev").alias("target_top_ref"), col("tt.target_top_prop"), col("td.total_n"))
         
         # Compare top referrers
         top_comparison = baseline_top_ref.join(target_top_ref, "curr", "inner") \

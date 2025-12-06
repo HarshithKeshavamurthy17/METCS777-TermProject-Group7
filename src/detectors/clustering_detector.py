@@ -147,10 +147,8 @@ class ClusteringDetector:
         centers = self.model.clusterCenters()
         
         # For each point, compute distance to its assigned center
-        def get_distance(row):
-            features = row.features
-            cluster_id = row.prediction
-            center = centers[cluster_id]
+        def get_distance(features, cluster_id):
+            center = centers[int(cluster_id)]
             return compute_distance(features, center)
         
         distance_udf = udf(get_distance, DoubleType())
@@ -212,7 +210,10 @@ class ClusteringDetector:
         )
         
         # Join back to get original edge info
-        edge_info = features_df.select("prev", "curr", "type", "baseline_median")
+        # features_df already has these columns, and they are preserved in predictions
+        # But just in case, we select them. 
+        # We drop baseline_median from edge_info to avoid ambiguity if it exists in anomalies
+        edge_info = features_df.select("prev", "curr", "type")
         anomalies = anomalies.join(edge_info, ["prev", "curr", "type"], "left")
         
         # Get current month traffic

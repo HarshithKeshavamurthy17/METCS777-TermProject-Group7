@@ -9,6 +9,10 @@ echo "============================================================"
 echo "Date: $(date)"
 echo "============================================================"
 
+# Ensure consistent Python version for Spark driver and workers
+export PYSPARK_PYTHON=/opt/anaconda3/bin/python
+export PYSPARK_DRIVER_PYTHON=/opt/anaconda3/bin/python
+
 # 1. Run ETL
 echo ""
 echo "------------------------------------------------------------"
