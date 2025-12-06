@@ -320,12 +320,20 @@ Press CTRL+C to quit
 
 ✅ **If you see "Running on http://127.0.0.1:5002", it's working!**
 
+> **Note:** You may see some SSL/TLS errors in the terminal after this - ignore them.  
+> They're just random connection attempts and don't affect the dashboard.
+
 **Step 4.4: Open in browser**
 
-Open your web browser and go to:
+**IMPORTANT:** Open your web browser and type this EXACTLY in the address bar:
 ```
-http://localhost:5002
+http://127.0.0.1:5002
 ```
+
+**⚠️ Common mistakes to avoid:**
+- ❌ Don't use `https://` (it's `http://`)
+- ❌ Don't use `localhost` (Chrome may redirect to HTTPS)
+- ✅ Use exactly: `http://127.0.0.1:5002`
 
 **You should see:**
 - A dark-themed dashboard
@@ -520,10 +528,10 @@ pip install -r requirements.txt
 python -c "from pyspark.sql import SparkSession; print('Ready!')"
 
 # 5. Run dashboard
-python run_dashboard.py
+PORT=5002 python run_dashboard.py
 
 # 6. Open browser
-# Go to http://localhost:5000
+# Go to http://127.0.0.1:5002 (use HTTP not HTTPS!)
 ```
 
 **Run full pipeline (optional):**
