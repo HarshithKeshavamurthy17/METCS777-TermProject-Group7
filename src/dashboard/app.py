@@ -123,90 +123,115 @@ def get_anomaly_detail(anomaly_id):
         if anomaly_df.count() == 0:
             return jsonify({'error': 'Anomaly not found'}), 404
         
-        pdf = anomaly_df.toPandas().iloc[0].to_dict()
+        # Get raw anomaly data
+        anomaly_data = anomaly_df.toPandas().iloc[0].to_dict()
         
-        # Get time series data for this edge
-        # This would require loading the processed clickstream data
-        # For now, return basic info
+        # Construct response with expected structure
+        response = {
+            'anomaly': anomaly_data,
+            'detection_signals': {
+                'statistical': {
+                    'label': 'Statistical Deviation',
+                    'value': float(anomaly_data.get('deviation_ratio', 0)),
+                    'status': 'anomaly' if float(anomaly_data.get('deviation_ratio', 0)) > 2.0 else 'elevated'
+                },
+                'forecast': {
+                    'label': 'Forecast Error',
+                    'value': float(anomaly_data.get('n', 0)) - float(anomaly_data.get('forecast_n', 0)) if anomaly_data.get('forecast_n') else 0.0,
+                    'status': 'anomaly' if anomaly_data.get('forecast_flag') else 'normal'
+                }
+            },
+            'timeseries_6m': [], # Placeholder - would need to fetch from features
+            'referrer_shares': [], # Placeholder - would need to fetch from features
+            'forecast_values': {
+                'forecast_n': float(anomaly_data.get('forecast_n', 0)) if anomaly_data.get('forecast_n') else None,
+                'forecast_error': 0.0,
+                'forecast_flag': bool(anomaly_data.get('forecast_flag', False))
+            },
+            'top_referrer_flip': False,
+            'major_mix_shift': anomaly_data.get('anomaly_type') == 'mix_shift'
+        }
         
-        return jsonify(pdf)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-@app.route('/api/timeseries')
-def get_timeseries():
-    """Get time series data for an edge."""
-    try:
-        prev = request.args.get('prev')
-        curr = request.args.get('curr')
-        # We need the month to know the range, but if not provided, we can't fetch daily
-        # The frontend might pass it, or we might need to look it up
-        # For now, let's assume the frontend passes 'month' or we default to something recent
-        # But wait, the frontend call in material_dashboard_enhanced.html is:
-        # /api/timeseries?prev=...&curr=...&type=...
-        # It doesn't pass month! We need to fix the frontend or infer it.
-        # Let's check the frontend code again.
-        # "const tsResponse = await fetch(`/api/timeseries?prev=${encodeURIComponent(a.prev)}&curr=${encodeURIComponent(a.curr)}&type=${encodeURIComponent(a.type || '')}`);"
-        # It does NOT pass month.
-        # However, the sparkline in the table is supposed to be MONTHLY traffic (6 months).
-        # The daily chart in the modal IS daily.
-        # Let's support both.
-        
-        # If 'daily' param is true, return daily views for 'curr' page
-        if request.args.get('daily') == 'true':
-            month = request.args.get('month', '2023-10') # Default if missing
-            series = get_pageview_series(curr, month)
-            return jsonify(series)
-            
-        # Otherwise return monthly traffic for the edge (from anomalies/features data)
-        # Since we don't have easy random access to features parquet by edge, 
-        # we'll return a placeholder or empty list for the sparkline if we can't easily get it.
-        # But wait, the frontend expects "traffic" array.
-        # For the sparkline, we can just return empty for now if we don't want to query the huge features file.
-        # Or we can return the daily views of 'curr' as a proxy? No, that's page views, not edge traffic.
-        # Let's return empty for edge traffic sparkline (to be safe) and focus on the daily chart in modal.
-        
-        return jsonify({'traffic': []})
-        
+        return jsonify(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/export/anomalies.csv')
-def export_anomalies_csv():
-    """Export anomalies as CSV."""
+@app.route('/api/anomalies/top')
+def get_top_anomalies():
+    """Get top 5 anomalies by confidence."""
     try:
-        # Get filters
-        month = request.args.get('month')
-        anomaly_type = request.args.get('anomaly_type')
-        min_confidence = request.args.get('min_confidence', type=float)
-        
-        filters = {}
-        if month:
-            filters['month'] = month
-        if anomaly_type:
-            filters['anomaly_type'] = anomaly_type
-            
-        # Load anomalies
-        df = anomalies_storage.load_anomalies(filters)
-        
-        if min_confidence:
-            from pyspark.sql.functions import col
-            df = df.filter(col('confidence') >= min_confidence)
-            
-        # Convert to Pandas
+        df = anomalies_storage.load_anomalies()
         pdf = df.toPandas()
         
-        # Create CSV
-        output = io.StringIO()
-        pdf.to_csv(output, index=False)
-        
-        return Response(
-            output.getvalue(),
-            mimetype="text/csv",
-            headers={"Content-disposition": "attachment; filename=anomalies.csv"}
-        )
+        if pdf.empty:
+            return jsonify([])
+            
+        top_5 = pdf.nlargest(5, 'confidence').to_dict('records')
+        return jsonify(top_5)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/anomalies/insights')
+def get_insights():
+    """Generate insights from anomalies."""
+    try:
+        df = anomalies_storage.load_anomalies()
+        pdf = df.toPandas()
+        
+        if pdf.empty:
+            return jsonify({'insights': []})
+            
+        insights = []
+        
+        # Insight 1: Dominant type
+        type_counts = pdf['anomaly_type'].value_counts()
+        if not type_counts.empty:
+            dominant_type = type_counts.index[0]
+            insights.append(f"Most anomalies are of type '{dominant_type}' ({type_counts.iloc[0]} detected).")
+            
+        # Insight 2: High confidence count
+        high_conf = len(pdf[pdf['confidence'] > 0.8])
+        if high_conf > 0:
+            insights.append(f"{high_conf} anomalies have very high confidence (> 0.8).")
+            
+        # Insight 3: Top affected page
+        if 'curr' in pdf.columns:
+            top_page = pdf['curr'].mode()
+            if not top_page.empty:
+                insights.append(f"'{top_page.iloc[0]}' is the most affected destination page.")
+                
+        return jsonify({'insights': insights})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/anomalies/overview')
+def get_overview_chart():
+    """Get monthly anomaly counts by type."""
+    try:
+        df = anomalies_storage.load_anomalies()
+        pdf = df.toPandas()
+        
+        if pdf.empty:
+            return jsonify({'months': []})
+            
+        # Group by month and type
+        counts = pdf.groupby(['month', 'anomaly_type']).size().unstack(fill_value=0)
+        
+        months = sorted(counts.index.tolist())
+        response = {
+            'months': months,
+            'traffic_spike': counts.get('traffic_spike', pd.Series(0, index=months)).tolist(),
+            'mix_shift': counts.get('mix_shift', pd.Series(0, index=months)).tolist(),
+            'forecast_spike': counts.get('forecast_spike', pd.Series(0, index=months)).tolist() # Assuming this type exists or maps to something
+        }
+        
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/graph')
 def get_anomaly_graph():
