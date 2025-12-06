@@ -32,6 +32,6 @@ echo ""
 echo "------------------------------------------------------------"
 echo "STEP 3: Starting Dashboard"
 echo "------------------------------------------------------------"
-echo "Dashboard will be available at http://localhost:5000"
+echo "Dashboard will be available at http://localhost:6767"
 echo "Press Ctrl+C to stop."
 python scripts/start_dashboard.py
