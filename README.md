@@ -248,9 +248,30 @@ ls -lh data/anomalies/anomalies.parquet
 
 ---
 
-### Part 4: Start the Dashboard 
+### Part 4: Start the Dashboard (2 minutes)
 
-**Step 4.1: Make sure you're in the project root**
+> **⚠️ CRITICAL: DO NOT SKIP TO THIS STEP!**  
+> You MUST complete Part 2 (virtual environment setup) first!  
+> If you skip it, you'll get "No module named 'pyspark'" errors.
+
+**Step 4.1: Make sure you completed Part 2**
+
+Check if you see `(venv)` at the start of your terminal prompt:
+```
+(venv) user@computer:~/test-clone$
+```
+
+**If you DON'T see (venv):**
+```bash
+# Go back and do Part 2!
+python3 -m venv venv
+source venv/bin/activate  # Mac/Linux
+# or
+venv\Scripts\activate      # Windows
+pip install -r requirements.txt
+```
+
+**Step 4.2: Make sure you're in the project root**
 ```bash
 pwd
 ```
@@ -269,7 +290,15 @@ venv\Scripts\activate      # Windows
 ```
 
 **Step 4.3: Run the dashboard**
+
+> **Note:** If you're on Mac, port 5000 is often used by AirPlay Receiver.  
+> We recommend using port 5002 instead to avoid conflicts.
+
 ```bash
+# Recommended - use port 5002
+PORT=5002 python run_dashboard.py
+
+# OR if port 5000 is free on your system
 python run_dashboard.py
 ```
 
@@ -277,8 +306,7 @@ python run_dashboard.py
 ```
 Setting default log level to "WARN".
 ...
-✓ Loaded 2,346 anomalies from partitioned parquet files
-✓ Months with anomalies: ['2023-09', '2023-10', '2023-11', ...]
+✓ Loaded 2,346 anomalies from single file
 ✓ By type: {'mix_shift': 130, 'traffic_spike': 2216}
 
 Starting Dashboard...
@@ -286,17 +314,17 @@ Starting Dashboard...
  * Debug mode: off
 WARNING: This is a development server...
  * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:5000
+ * Running on http://127.0.0.1:5002
 Press CTRL+C to quit
 ```
 
-✅ **If you see "Running on http://127.0.0.1:5000", it's working!**
+✅ **If you see "Running on http://127.0.0.1:5002", it's working!**
 
 **Step 4.4: Open in browser**
 
 Open your web browser and go to:
 ```
-http://localhost:5000
+http://localhost:5002
 ```
 
 **You should see:**
