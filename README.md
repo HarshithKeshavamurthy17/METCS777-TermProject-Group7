@@ -58,6 +58,471 @@ You should see something like `java version "11.0.x"` or `"1.8.0_xxx"`.
 
 ---
 
+## 🚀 COMPLETE SETUP & RUN GUIDE (Zero to Dashboard)
+
+**This section walks through EVERY SINGLE STEP from scratch. Follow this if you want to run the entire project without missing anything.**
+
+### Prerequisites Check
+
+Before starting, let's verify everything:
+
+**1. Check Python:**
+```bash
+python3 --version
+```
+Should show: `Python 3.8.x` or higher
+
+**2. Check Java:**
+```bash
+java -version
+```
+Should show: `openjdk version "11.0.x"` or `java version "1.8.0_xxx"`
+
+**3. Check pip:**
+```bash
+pip3 --version
+```
+Should show: `pip 20.x` or higher
+
+**If any of these fail, install them first** (see "Required Software" above).
+
+---
+
+### Part 1: Get the Code (5 minutes)
+
+**Step 1.1: Open Terminal**
+- **Mac**: Press `Cmd + Space`, type "Terminal", press Enter
+- **Windows**: Press `Win + R`, type "cmd", press Enter
+- **Linux**: Press `Ctrl + Alt + T`
+
+**Step 1.2: Navigate to where you want the project**
+```bash
+cd ~/Downloads  # Or wherever you want to put it
+```
+
+**Step 1.3: Clone the repository**
+```bash
+git clone https://github.com/HarshithKeshavamurthy17/METCS777-TermProject-Group7.git
+```
+
+**Expected output:**
+```
+Cloning into 'METCS777-TermProject-Group7'...
+remote: Enumerating objects: 166, done.
+remote: Counting objects: 100% (166/166), done.
+...
+Resolving deltas: 100% (54/54), done.
+```
+
+**Step 1.4: Enter the project folder**
+```bash
+cd METCS777-TermProject-Group7
+```
+
+**Step 1.5: Verify you're in the right place**
+```bash
+ls
+```
+
+**You should see:**
+```
+README.md
+requirements.txt
+run_pipeline.py
+run_dashboard.py
+config/
+src/
+scripts/
+data/
+...
+```
+
+✅ **If you see these files, you're good to go!**
+
+---
+
+### Part 2: Set Up Python Environment (5 minutes)
+
+**Step 2.1: Create virtual environment**
+```bash
+python3 -m venv venv
+```
+
+**Expected output:**
+```
+(Nothing - it just creates a venv/ folder)
+```
+
+**Verify it was created:**
+```bash
+ls venv
+```
+You should see: `bin/`, `lib/`, `include/`, etc.
+
+**Step 2.2: Activate the virtual environment**
+
+**On Mac/Linux:**
+```bash
+source venv/bin/activate
+```
+
+**On Windows:**
+```bash
+venv\Scripts\activate
+```
+
+**Expected result:**
+Your terminal prompt should now start with `(venv)`. Example:
+```
+(venv) user@computer:~/METCS777-TermProject-Group7$
+```
+
+✅ **If you see (venv), it worked!**
+
+**Step 2.3: Upgrade pip (optional but recommended)**
+```bash
+pip install --upgrade pip
+```
+
+**Step 2.4: Install all dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+**Expected output:**
+```
+Collecting pyspark>=3.5.0
+  Downloading pyspark-3.5.0-py2.py3-none-any.whl (317 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━ 317.0/317.0 MB 5.2 MB/s
+Collecting flask>=3.0.0
+  Downloading Flask-3.0.0-py3-none-any.whl (99 kB)
+...
+Successfully installed flask-3.0.0 numpy-1.24.0 pandas-2.0.0 pyspark-3.5.0 ...
+```
+
+**This takes 2-3 minutes. Be patient!**
+
+**Step 2.5: Verify installation**
+```bash
+python -c "from pyspark.sql import SparkSession; print('✓ Spark works!')"
+```
+
+**Expected output:**
+```
+✓ Spark works!
+```
+
+```bash
+python -c "import flask, pandas, numpy; print('✓ All libraries loaded!')"
+```
+
+**Expected output:**
+```
+✓ All libraries loaded!
+```
+
+✅ **If both print checkmarks, your environment is ready!**
+
+---
+
+### Part 3: Check the Data (1 minute)
+
+We've included pre-generated anomaly results so you don't need to download 60GB of data!
+
+**Verify the data exists:**
+```bash
+ls data/anomalies/
+```
+
+**You should see folders like:**
+```
+month=2023-09/
+month=2023-10/
+month=2023-11/
+...
+```
+
+**Check one folder:**
+```bash
+ls data/anomalies/month\=2023-09/
+```
+
+**You should see:**
+```
+part-00000-xxx.parquet
+part-00001-xxx.parquet
+...
+```
+
+✅ **If you see .parquet files, the data is there!**
+
+---
+
+### Part 4: Start the Dashboard (2 minutes)
+
+**Step 4.1: Make sure you're in the project root**
+```bash
+pwd
+```
+
+**Should show:**
+```
+/Users/yourname/Downloads/METCS777-TermProject-Group7
+```
+(or wherever you cloned it)
+
+**Step 4.2: Make sure venv is activated**
+Check for `(venv)` in your prompt. If not there:
+```bash
+source venv/bin/activate  # Mac/Linux
+venv\Scripts\activate      # Windows
+```
+
+**Step 4.3: Run the dashboard**
+```bash
+python run_dashboard.py
+```
+
+**Expected output:**
+```
+Setting default log level to "WARN".
+...
+✓ Loaded 2,346 anomalies from partitioned parquet files
+✓ Months with anomalies: ['2023-09', '2023-10', '2023-11', ...]
+✓ By type: {'mix_shift': 130, 'traffic_spike': 2216}
+
+Starting Dashboard...
+ * Serving Flask app 'scripts.start_dashboard_demo'
+ * Debug mode: off
+WARNING: This is a development server...
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+```
+
+✅ **If you see "Running on http://127.0.0.1:5000", it's working!**
+
+**Step 4.4: Open in browser**
+
+Open your web browser and go to:
+```
+http://localhost:5000
+```
+
+**You should see:**
+- A dark-themed dashboard
+- Stats showing "2,346 Total Anomalies"
+- Charts and a filterable table
+- Top anomalies section
+
+✅ **If you see the dashboard, CONGRATULATIONS! You're done!**
+
+**To stop the dashboard:**
+Press `Ctrl+C` in the terminal
+
+---
+
+### Part 5 (Optional): Download Fresh Data & Run Full Pipeline
+
+**⚠️ WARNING: This downloads ~10GB and takes 20-40 minutes. Only do this if you want to process your own data!**
+
+**Step 5.1: Download Wikipedia clickstream data**
+
+From the project root (with venv activated):
+```bash
+python scripts/download_clickstream.py --months 2023-09 2023-10
+```
+
+**This will:**
+- Download 2 months of compressed data (~3GB)
+- Save to `data/raw/clickstream-2023-09.tsv.gz` and `clickstream-2023-10.tsv.gz`
+- Take 5-15 minutes depending on your internet
+
+**Expected output:**
+```
+Downloading 2023-09 clickstream...
+  URL: https://dumps.wikimedia.org/other/clickstream/2023-09/clickstream-2023-09.tsv.gz
+  Saving to: data/raw/clickstream-2023-09.tsv.gz
+  Downloaded: 1.5 GB
+✓ Download complete
+
+Downloading 2023-10 clickstream...
+  ...
+✓ All downloads complete
+```
+
+**Step 5.2: Run the full pipeline**
+```bash
+python run_pipeline.py
+```
+
+**This will:**
+1. Load the TSV files (takes 2-3 min per month)
+2. Clean and filter the data
+3. Save to Parquet format (faster)
+4. Calculate baselines (median traffic for each edge)
+5. Run 3 anomaly detectors
+6. Save results to `data/anomalies/`
+
+**Expected runtime:** 10-15 minutes for 2 months
+
+**Expected output:**
+```
+Starting Anomaly Detection Pipeline...
+
+=== ETL Phase ===
+Loading month 2023-09...
+✓ Loaded 10,234,567 raw edges
+✓ After filtering: 8,456,123 valid edges
+Saving to Parquet...
+✓ Saved to data/processed/month=2023-09/
+
+Loading month 2023-10...
+...
+
+=== Baseline Calculation ===
+Calculating baselines for 1,567,890 unique edges...
+✓ Baselines calculated
+
+=== Anomaly Detection ===
+Running Statistical Detector (traffic spikes)...
+  Processing month 2023-09...
+  ✓ Found 623 traffic spikes
+  Processing month 2023-10...
+  ✓ Found 712 traffic spikes
+
+Running Mix-Shift Detector...
+  ✓ Found 34 mix shifts
+
+Running Clustering Detector...
+  ✓ Found 0 navigation edges
+
+=== Saving Results ===
+Total anomalies: 1,369
+Saving to data/anomalies/...
+✓ Pipeline complete!
+```
+
+**Step 5.3: Re-start the dashboard to see new results**
+```bash
+python run_dashboard.py
+```
+
+Now the dashboard will show YOUR freshly detected anomalies!
+
+---
+
+### Troubleshooting EVERY Possible Error
+
+**Error: "Port 5000 already in use"**
+```bash
+# Solution 1: Use different port
+PORT=5002 python run_dashboard.py
+# Then open http://localhost:5002
+
+# Solution 2 (Mac only): Disable AirPlay Receiver
+# System Preferences → Sharing → Uncheck "AirPlay Receiver"
+```
+
+**Error: "No module named 'pyspark'"**
+```bash
+# Make sure venv is activated - look for (venv) in prompt
+source venv/bin/activate
+
+# Reinstall dependencies
+pip install -r requirements.txt
+```
+
+**Error: "java.lang.OutOfMemoryError: Java heap space"**
+```bash
+# Edit config/config.yaml
+# Change these lines:
+# executor_memory: "4g"  # was 8g
+# driver_memory: "4g"    # was 8g
+
+# Then re-run pipeline
+python run_pipeline.py
+```
+
+**Error: "command not found: python3"**
+```bash
+# Try just "python" instead
+python --version
+
+# If that works, replace python3 with python in all commands
+```
+
+**Error: Downloads fail**
+```bash
+# Manually download from:
+# https://dumps.wikimedia.org/other/clickstream/
+
+# Save files to data/raw/ with exact names:
+# clickstream-2023-09.tsv.gz
+# clickstream-2023-10.tsv.gz
+```
+
+**Error: "The system cannot find the path specified" (Windows)**
+```bash
+# Use forward slashes or escape backslashes
+cd C:/Users/YourName/Downloads/METCS777-TermProject-Group7
+
+# OR
+cd C:\\Users\\YourName\\Downloads\\METCS777-TermProject-Group7
+```
+
+**Dashboard loads but shows "No anomalies"**
+```bash
+# Check data exists
+ls data/anomalies/
+
+# If empty, either:
+# 1. Download from GitHub releases (if we uploaded data)
+# 2. Run the pipeline: python run_pipeline.py
+```
+
+---
+
+## Quick Reference Commands
+
+**Full setup from scratch:**
+```bash
+# 1. Clone
+git clone https://github.com/HarshithKeshavamurthy17/METCS777-TermProject-Group7.git
+cd METCS777-TermProject-Group7
+
+# 2. Virtual environment
+python3 -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+
+# 3. Install
+pip install -r requirements.txt
+
+# 4. Verify
+python -c "from pyspark.sql import SparkSession; print('Ready!')"
+
+# 5. Run dashboard
+python run_dashboard.py
+
+# 6. Open browser
+# Go to http://localhost:5000
+```
+
+**Run full pipeline (optional):**
+```bash
+# Download data
+python scripts/download_clickstream.py --months 2023-09 2023-10
+
+# Process and detect
+python run_pipeline.py
+
+# View results
+python run_dashboard.py
+```
+
+---
+
+
 ## Getting Started (Step-by-Step)
 
 ### Step 1: Clone Our Repository
