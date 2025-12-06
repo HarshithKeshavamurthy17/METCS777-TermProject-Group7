@@ -17,12 +17,6 @@ We used Apache Spark to handle the massive data volumes and built an interactive
 
 ---
 
-## Quick Links
-
-- 🚀 **Want to see it in action?** Jump to [Running the Dashboard](#step-3-launch-the-dashboard)
-- 📊 **Our Results**: We found 2,346 anomalies across 6 months of data
-- 💻 **GitHub**: You're already here!
-
 ---
 
 ## What You Need Before Starting
@@ -58,7 +52,7 @@ You should see something like `java version "11.0.x"` or `"1.8.0_xxx"`.
 
 ---
 
-## 🚀 COMPLETE SETUP & RUN GUIDE (Zero to Dashboard)
+## 🚀 COMPLETE SETUP & RUN GUIDE 
 
 **This section walks through EVERY SINGLE STEP from scratch. Follow this if you want to run the entire project without missing anything.**
 
@@ -88,7 +82,7 @@ Should show: `pip 20.x` or higher
 
 ---
 
-### Part 1: Get the Code (5 minutes)
+### Part 1: Get the Code 
 
 **Step 1.1: Open Terminal**
 - **Mac**: Press `Cmd + Space`, type "Terminal", press Enter
@@ -141,7 +135,7 @@ data/
 
 ---
 
-### Part 2: Set Up Python Environment (5 minutes)
+### Part 2: Set Up Python Environment 
 
 **Step 2.1: Create virtual environment**
 ```bash
@@ -225,7 +219,7 @@ python -c "import flask, pandas, numpy; print('✓ All libraries loaded!')"
 
 ---
 
-### Part 3: Check the Data (1 minute)
+### Part 3: Check the Data 
 
 We've included pre-generated anomaly results so you don't need to download 60GB of data!
 
@@ -258,7 +252,7 @@ part-00001-xxx.parquet
 
 ---
 
-### Part 4: Start the Dashboard (2 minutes)
+### Part 4: Start the Dashboard 
 
 **Step 4.1: Make sure you're in the project root**
 ```bash
@@ -1042,14 +1036,6 @@ If we continued this project, we'd add:
 **Semester**: Fall 2024  
 **Boston University Metropolitan College**
 
-**Grading Criteria We Addressed:**
-- ✅ Clean, well-commented code
-- ✅ Environment setup instructions
-- ✅ Clear run instructions  
-- ✅ Results with real data
-- ✅ Dataset explanation
-- ✅ **BONUS**: Public GitHub repo with detailed README
-
 ---
 
 ## Questions?
@@ -1063,7 +1049,7 @@ If you run into issues:
 
 ## License & Usage
 
-This project was created for academic purposes as part of MET CS 777. Feel free to use it for learning, but please cite our work if you build on it!
+This project was created for academic purposes as part of MET CS 777. 
 
 ---
 
