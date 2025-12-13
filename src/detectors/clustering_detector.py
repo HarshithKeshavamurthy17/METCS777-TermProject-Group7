@@ -134,24 +134,67 @@ class ClusteringDetector:
         predictions = self.model.transform(features_prepared)
         
         # Calculate distance threshold
-        # Distance is stored in the prediction, but we need to compute it manually
-        from pyspark.ml.linalg import Vectors
+        # Get cluster centers and convert to serializable format (list of numpy arrays)
+        centers_raw = self.model.clusterCenters()
+        # Convert DenseVector to numpy array for serialization
+        centers_list = []
+        for c in centers_raw:
+            # Handle both DenseVector and numpy array cases
+            try:
+                if hasattr(c, 'toArray') and not isinstance(c, np.ndarray):
+                    # It's a DenseVector
+                    centers_list.append(np.array(c.toArray()))
+                else:
+                    # Already a numpy array or can be converted directly
+                    centers_list.append(np.array(c))
+            except Exception:
+                # Fallback: try direct conversion
+                centers_list.append(np.array(c))
         
-        def compute_distance(features, center):
-            """Compute Euclidean distance."""
-            if features is None or center is None:
+        # Broadcast centers for use in UDF
+        from pyspark import SparkContext
+        sc = self.spark.sparkContext
+        centers_broadcast = sc.broadcast(centers_list)
+        
+        def get_distance(features, prediction):
+            """Compute distance from features to assigned cluster center."""
+            try:
+                if features is None or prediction is None:
                 return float('inf')
-            return float(np.linalg.norm(features - center))
+                
+                # Get centers from broadcast variable
+                centers = centers_broadcast.value
+                cluster_id = int(prediction)
+                
+                if cluster_id < 0 or cluster_id >= len(centers):
+                    return float('inf')
         
-        # Get cluster centers
-        centers = self.model.clusterCenters()
-        
-        # For each point, compute distance to its assigned center
-        def get_distance(row):
-            features = row.features
-            cluster_id = row.prediction
+                # Convert features to numpy array - handle both DenseVector and numpy array
+                if features is None:
+                    return float('inf')
+                elif isinstance(features, np.ndarray):
+                    features_array = features
+                elif hasattr(features, 'toArray'):
+                    # It's a DenseVector
+                    features_array = np.array(features.toArray())
+                else:
+                    # Try to convert to array
+                    features_array = np.array(features)
+                
             center = centers[cluster_id]
-            return compute_distance(features, center)
+                
+                # Ensure both are numpy arrays
+                if not isinstance(features_array, np.ndarray):
+                    features_array = np.array(features_array)
+                if not isinstance(center, np.ndarray):
+                    center = np.array(center)
+                
+                # Compute Euclidean distance
+                return float(np.linalg.norm(features_array - center))
+            except Exception as e:
+                # Log error for debugging (but don't print in production)
+                # Return inf on any error
+                return float('inf')
         
         distance_udf = udf(get_distance, DoubleType())
         predictions_with_distance = predictions.withColumn(
@@ -188,17 +231,68 @@ class ClusteringDetector:
         # Get predictions
         predictions = self.model.transform(features_prepared)
         
-        # Calculate distances (simplified - using cluster assignment)
-        # In production, compute actual Euclidean distance
-        from pyspark.ml.linalg import Vectors
+        # Calculate distances to cluster centers
+        # Get cluster centers and convert to serializable format
+        centers_raw = self.model.clusterCenters()
+        # Convert DenseVector to numpy array for serialization
+        centers_list = []
+        for c in centers_raw:
+            # Handle both DenseVector and numpy array cases
+            try:
+                if hasattr(c, 'toArray') and not isinstance(c, np.ndarray):
+                    # It's a DenseVector
+                    centers_list.append(np.array(c.toArray()))
+                else:
+                    # Already a numpy array or can be converted directly
+                    centers_list.append(np.array(c))
+            except Exception:
+                # Fallback: try direct conversion
+                centers_list.append(np.array(c))
         
-        centers = self.model.clusterCenters()
+        # Broadcast centers for use in UDF
+        from pyspark import SparkContext
+        sc = self.spark.sparkContext
+        centers_broadcast = sc.broadcast(centers_list)
         
         def compute_distance(features, cluster_id):
+            """Compute distance from features to assigned cluster center."""
+            try:
+                if features is None or cluster_id is None:
+                    return float('inf')
+                
+                # Get centers from broadcast variable
+                centers = centers_broadcast.value
+                cid = int(cluster_id)
+                
+                if cid < 0 or cid >= len(centers):
+                    return float('inf')
+                
+                # Convert features to numpy array - handle both DenseVector and numpy array
             if features is None:
+                    return float('inf')
+                elif isinstance(features, np.ndarray):
+                    features_array = features
+                elif hasattr(features, 'toArray'):
+                    # It's a DenseVector
+                    features_array = np.array(features.toArray())
+                else:
+                    # Try to convert to array
+                    features_array = np.array(features)
+                
+                center = centers[cid]
+                
+                # Ensure both are numpy arrays
+                if not isinstance(features_array, np.ndarray):
+                    features_array = np.array(features_array)
+                if not isinstance(center, np.ndarray):
+                    center = np.array(center)
+                
+                # Compute Euclidean distance
+                return float(np.linalg.norm(features_array - center))
+            except Exception as e:
+                # Log error for debugging (but don't print in production)
+                # Return inf on any error
                 return float('inf')
-            center = centers[int(cluster_id)]
-            return float(np.linalg.norm(features - center))
         
         distance_udf = udf(compute_distance, DoubleType())
         predictions_with_distance = predictions.withColumn(
@@ -211,13 +305,24 @@ class ClusteringDetector:
             col("distance_to_center") >= self.distance_threshold
         )
         
-        # Join back to get original edge info
-        edge_info = features_df.select("prev", "curr", "type", "baseline_median")
-        anomalies = anomalies.join(edge_info, ["prev", "curr", "type"], "left")
+        # features_prepared should already have prev, curr, type, baseline_median
+        # But to be safe, ensure we have these columns
+        # Check if we need to join (only if baseline_median is missing)
+        if "baseline_median" not in anomalies.columns:
+            # Need to join to get baseline_median - use alias to avoid ambiguity
+            edge_info = features_df.select("prev", "curr", "type", col("baseline_median").alias("edge_baseline_median"))
+            anomalies_alias = anomalies.alias("anom")
+            edge_info_alias = edge_info.alias("edge")
+            
+            anomalies = anomalies_alias.join(
+                edge_info_alias,
+                (col("anom.prev") == col("edge.prev")) &
+                (col("anom.curr") == col("edge.curr")) &
+                (col("anom.type") == col("edge.type")),
+                "left"
+            ).withColumn("baseline_median", col("edge.edge_baseline_median"))
         
-        # Get current month traffic
-        # This would need to be joined from the original data
-        # For now, use baseline_median as proxy
+        # Get current month traffic - use baseline_median
         anomalies = anomalies.withColumn("n", col("baseline_median"))
         
         # Add anomaly metadata

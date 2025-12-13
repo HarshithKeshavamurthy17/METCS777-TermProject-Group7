@@ -206,26 +206,46 @@ class AnomalyDetectionPipeline:
         
         months = self.config.get('data', {}).get('months', [])
         
-        # Use last month as target, others as baseline
-        target_month = months[-1]
-        baseline_months = months[:-1]
+        # Process ALL months, not just the last one
+        # For each month, use previous months as baseline (need at least 3 months for baseline)
+        min_baseline_months = self.config.get('anomaly_detection', {}).get('traffic_spike', {}).get('min_baseline_months', 3)
         
         all_anomalies = []
         
+        # Fit clustering detector once on all data
+        print("\n--- Fitting Clustering Detector (once for all months) ---")
+        clustering_fitted = False
+        try:
+            self.clustering_detector.fit(features, months)
+            clustering_fitted = True
+            print("✓ Clustering detector fitted successfully")
+        except Exception as e:
+            print(f"Warning: Clustering detector fit failed: {e}")
+            print("Will skip clustering detection for all months...")
+        
+        # Process each month as a target month
+        for i, target_month in enumerate(months):
+            # Need at least min_baseline_months before this month to use as baseline
+            if i < min_baseline_months:
+                print(f"\n⚠ Skipping {target_month}: Need at least {min_baseline_months} baseline months (only {i} available)")
+                continue
+            
+            baseline_months = months[:i]  # All months before current month
+            print(f"\n{'='*80}")
+            print(f"Processing month: {target_month} (baseline: {len(baseline_months)} months)")
+            print(f"{'='*80}")
+        
         # 1. Statistical detector (traffic spikes)
-        print("\n--- Running Statistical Detector ---")
+            print(f"\n--- Running Statistical Detector for {target_month} ---")
         statistical_anomalies = self.statistical_detector.detect(
             df, baselines, target_month
         )
         
         # Join forecast data to statistical anomalies if available
         if self.forecasting_enabled and self.forecast_df is not None and self.forecast_df.count() > 0:
-            print(f"\nJoining forecast data to statistical anomalies...")
-            # Get forecast data for target month
             forecast_subset = self.forecast_df.filter(col('month') == target_month)
             
             if forecast_subset.count() > 0:
-                print(f"Found {forecast_subset.count()} forecast records for {target_month}")
                 # Ensure types match
                 forecast_subset = forecast_subset.withColumn('month', col('month').cast('string'))
                 statistical_anomalies = statistical_anomalies.withColumn('month', col('month').cast('string'))
@@ -235,27 +255,22 @@ class AnomalyDetectionPipeline:
                     ['prev', 'curr', 'type', 'month'],
                     'left'
                 )
-                forecast_count = statistical_anomalies.filter(col('forecast_flag').isNotNull()).count()
-                print(f"Successfully joined forecast data to {forecast_count} anomalies")
-            else:
-                print(f"Warning: No forecast data found for target month {target_month}")
         
         all_anomalies.append(statistical_anomalies)
         
-        # 2. Clustering detector (navigation edges)
-        print("\n--- Running Clustering Detector ---")
+            # 2. Clustering detector (navigation edges) - only if fitted successfully
+            if clustering_fitted:
+                print(f"\n--- Running Clustering Detector for {target_month} ---")
         try:
-            self.clustering_detector.fit(features, months)
             clustering_anomalies = self.clustering_detector.detect(
                 features, months, target_month
             )
             all_anomalies.append(clustering_anomalies)
         except Exception as e:
-            print(f"Warning: Clustering detector failed: {e}")
-            print("Continuing with other detectors...")
+                    print(f"Warning: Clustering detector failed for {target_month}: {e}")
         
         # 3. Mix-shift detector
-        print("\n--- Running Mix-Shift Detector ---")
+            print(f"\n--- Running Mix-Shift Detector for {target_month} ---")
         mix_shift_anomalies = self.mix_shift_detector.detect(
             referrer_dist, target_month, baseline_months
         )

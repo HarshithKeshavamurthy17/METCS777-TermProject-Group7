@@ -129,21 +129,29 @@ class MixShiftDetector:
         baseline_top = baseline_props.groupBy("curr") \
             .agg(spark_max("baseline_proportion").alias("baseline_top_prop"))
         
-        baseline_top_ref = baseline_props.join(
-            baseline_top,
-            (baseline_props.curr == baseline_top.curr) &
-            (baseline_props.baseline_proportion == baseline_top.baseline_top_prop)
-        ).select("curr", col("prev").alias("baseline_top_ref"), "baseline_top_prop")
+        # Use DataFrame aliases to avoid ambiguous column references
+        baseline_props_alias = baseline_props.alias("bp")
+        baseline_top_alias = baseline_top.alias("bt")
+        
+        baseline_top_ref = baseline_props_alias.join(
+            baseline_top_alias,
+            (col("bp.curr") == col("bt.curr")) &
+            (col("bp.baseline_proportion") == col("bt.baseline_top_prop"))
+        ).select(col("bp.curr").alias("curr"), col("bp.prev").alias("baseline_top_ref"), col("bt.baseline_top_prop"))
         
         # Get top referrer for target
         target_top = target_dist.groupBy("curr") \
             .agg(spark_max("proportion").alias("target_top_prop"))
         
-        target_top_ref = target_dist.join(
-            target_top,
-            (target_dist.curr == target_top.curr) &
-            (target_dist.proportion == target_top.target_top_prop)
-        ).select("curr", col("prev").alias("target_top_ref"), "target_top_prop", "total_n")
+        # Use DataFrame aliases to avoid ambiguous column references
+        target_dist_alias = target_dist.alias("td")
+        target_top_alias = target_top.alias("tt")
+        
+        target_top_ref = target_dist_alias.join(
+            target_top_alias,
+            (col("td.curr") == col("tt.curr")) &
+            (col("td.proportion") == col("tt.target_top_prop"))
+        ).select(col("td.curr").alias("curr"), col("td.prev").alias("target_top_ref"), col("tt.target_top_prop"), col("td.total_n"))
         
         # Compare top referrers
         top_comparison = baseline_top_ref.join(target_top_ref, "curr", "inner") \

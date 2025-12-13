@@ -182,7 +182,7 @@ if __name__ == '__main__':
     dashboard_config = config.get('dashboard', {}) if config else {}
     app.run(
         host=dashboard_config.get('host', '0.0.0.0'),
-        port=dashboard_config.get('port', 5000),
+        port=dashboard_config.get('port', 7000),
         debug=dashboard_config.get('debug', False)
     )
 

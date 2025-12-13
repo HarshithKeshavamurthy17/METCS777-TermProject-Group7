@@ -30,11 +30,34 @@ try:
     # Initialize Spark and load ALL anomalies
     config = load_config()
     spark = create_spark_session(config)
-    storage = AnomaliesStorage(spark, anomalies_path, format='parquet')
     
-    # Load ALL anomalies from all partitions
-    df = storage.load_anomalies()
-    anomalies_df = df.toPandas()
+    # Check if anomalies directory exists before trying to load
+    anomalies_dir_exists = os.path.exists(anomalies_path)
+    has_partitions = False
+    if anomalies_dir_exists:
+        # Check if it has partition subdirectories (month=, anomaly_type=, etc.)
+        try:
+            subdirs = [d for d in os.listdir(anomalies_path) if os.path.isdir(os.path.join(anomalies_path, d))]
+            has_partitions = any('=' in d for d in subdirs)  # Partitioned format has "month=2023-11" style dirs
+        except:
+            pass
+    
+    if anomalies_dir_exists and (has_partitions or any(f.endswith('.parquet') for f in os.listdir(anomalies_path) if os.path.isfile(os.path.join(anomalies_path, f)))):
+        try:
+            storage = AnomaliesStorage(spark, anomalies_path, format='parquet')
+            # Load ALL anomalies from all partitions
+            df = storage.load_anomalies()
+            anomalies_df = df.toPandas()
+        except Exception as load_error:
+            print(f"⚠ Warning: Could not load anomalies from {anomalies_path}: {load_error}")
+            print("   The directory exists but may be empty or corrupted.")
+            print("   Run 'python run_pipeline.py' to generate anomalies.")
+            anomalies_df = pd.DataFrame()
+else:
+        print(f"⚠ Warning: Anomalies directory not found at {anomalies_path}")
+        print("   Run 'python run_pipeline.py' first to generate anomalies.")
+        print("   The dashboard will start but show no anomalies.")
+    anomalies_df = pd.DataFrame()
     
     print(f"✓ Loaded {len(anomalies_df)} anomalies from partitioned parquet files")
     if not anomalies_df.empty:
@@ -167,7 +190,8 @@ def get_anomalies():
         month = request.args.get('month')
         anomaly_type = request.args.get('anomaly_type')
         min_confidence = request.args.get('min_confidence', type=float)
-        limit = request.args.get('limit', type=int, default=1000)
+        # If no month filter, allow more results (for "All Months" view)
+        limit = request.args.get('limit', type=int, default=5000 if not month else 1000)
         
         if month:
             df = df[df['month'] == month]
@@ -191,7 +215,7 @@ def get_anomalies():
             # Concatenate: high deviation first, then low deviation
             df = pd.concat([high_dev, low_dev], ignore_index=True)
         else:
-            df = df.sort_values('confidence', ascending=False)
+        df = df.sort_values('confidence', ascending=False)
         
         if limit:
             df = df.head(limit)
@@ -750,7 +774,25 @@ def get_anomaly_graph():
 
 
 if __name__ == '__main__':
-    print("Starting dashboard on http://localhost:5000")
+    import socket
+    
+    def find_available_port(start_port=7000, max_attempts=10):
+        """Find an available port in the 7000 series."""
+        for i in range(max_attempts):
+            port = start_port + i
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(('', port))
+                    return port
+            except OSError:
+                continue
+        # If all ports in 7000 series are taken, fall back to system-assigned port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('', 0))
+            return s.getsockname()[1]
+    
+    port = find_available_port(7000)
+    print(f"Starting dashboard on http://localhost:{port}")
     print(f"Loaded {len(anomalies_df)} anomalies")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
 

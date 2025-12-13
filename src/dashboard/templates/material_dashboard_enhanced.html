@@ -1297,6 +1297,14 @@
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
+                    <span class="stat-card-title">🔗 Navigation Edges</span>
+                    <span class="material-icons stat-card-icon">account_tree</span>
+                </div>
+                <div class="stat-card-value" id="navigation-edges">-</div>
+                <div class="stat-card-subtitle">Navigation patterns that deviate from cluster norms.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
                     <span class="stat-card-title">🔄 Mix Shifts</span>
                     <span class="material-icons stat-card-icon">swap_horiz</span>
                 </div>
@@ -1451,17 +1459,18 @@
     <script>
         let currentAnomalies = [];
         let anomalyDetailsCache = {};
-
+        
         async function loadStats() {
             try {
                 const response = await fetch('/api/anomalies/stats');
                 const stats = await response.json();
-
+                
                 document.getElementById('total-anomalies').textContent = stats.total || 0;
                 document.getElementById('traffic-spikes').textContent = stats.by_type?.traffic_spike || 0;
+                document.getElementById('navigation-edges').textContent = stats.by_type?.navigation_edge || 0;
                 document.getElementById('mix-shifts').textContent = stats.by_type?.mix_shift || 0;
                 document.getElementById('avg-confidence').textContent = (stats.avg_confidence || 0).toFixed(2);
-
+                
                 // Populate month filter
                 const monthSelect = document.getElementById('filter-month');
                 Object.keys(stats.by_month || {}).sort().forEach(month => {
@@ -1474,15 +1483,15 @@
                 console.error('Error loading stats:', error);
             }
         }
-
+        
         function generateSparkline(data, isAnomalous = false) {
             if (!data || data.length === 0) return '<svg width="80" height="20"></svg>';
-
+            
             const values = data.map(d => typeof d === 'object' ? d.n || d.views || 0 : d);
             const max = Math.max(...values);
             const min = Math.min(...values);
             const range = max - min || 1;
-
+            
             const width = 80;
             const height = 20;
             const padding = 2;
@@ -1491,45 +1500,46 @@
                 const y = height - padding - ((v - min) / range) * (height - padding * 2);
                 return `${x},${y}`;
             }).join(' ');
-
+            
             const lastPoint = points.split(' ').pop().split(',');
             const lastColor = isAnomalous ? '#f44336' : '#1976d2';
-
+            
             return `<svg width="${width}" height="${height}" style="display:block;">
                 <polyline points="${points}" fill="none" stroke="#1976d2" stroke-width="1.5"/>
                 <circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="2" fill="${lastColor}"/>
             </svg>`;
         }
-
+        
         async function loadAnomalies() {
             const type = document.getElementById('filter-type').value;
             const month = document.getElementById('filter-month').value;
             const confidence = parseFloat(document.getElementById('filter-confidence').value) || 0;
-
+            
             const tbody = document.getElementById('anomalies-table');
             tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading anomalies...</td></tr>';
-
+            
             // Also need to fetch details for "What Happened?" column
             const detailsPromises = [];
-
+            
             const params = new URLSearchParams();
             if (type) params.append('anomaly_type', type);
             if (month) params.append('month', month);
             if (confidence > 0) params.append('min_confidence', confidence);
-            params.append('limit', '1000');
-
+            // Increase limit to show all anomalies when "All Months" is selected
+            params.append('limit', month ? '1000' : '5000');
+            
             try {
                 const response = await fetch(`/api/anomalies?${params}`);
                 const data = await response.json();
-
+                
                 if (!data.anomalies || data.anomalies.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="9" class="loading">No anomalies found</td></tr>';
                     currentAnomalies = [];
                     return;
                 }
-
+                
                 currentAnomalies = data.anomalies;
-
+                
                 // Load timeseries for sparklines
                 const sparklinePromises = data.anomalies.map(async (a, idx) => {
                     try {
@@ -1540,7 +1550,7 @@
                         return { idx, data: [], month: a.month };
                     }
                 });
-
+                
                 // Load details for "What Happened?" column
                 const detailsPromises = data.anomalies.map(async (a, idx) => {
                     try {
@@ -1551,32 +1561,32 @@
                         return { idx, details: { daily_spike_match: false } };
                     }
                 });
-
+                
                 const [sparklines, detailsList] = await Promise.all([
                     Promise.all(sparklinePromises),
                     Promise.all(detailsPromises)
                 ]);
-
+                
                 const sparklineMap = {};
                 sparklines.forEach(s => {
                     sparklineMap[s.idx] = { data: s.data, month: s.month };
                 });
-
+                
                 const detailsMap = {};
                 detailsList.forEach(d => {
                     detailsMap[d.idx] = d.details;
                 });
-
+                
                 tbody.innerHTML = data.anomalies.map((a, idx) => {
                     const details = detailsMap[idx] || {};
                     const badgeClass = a.anomaly_type === 'traffic_spike' ? 'badge-traffic-spike' :
-                        a.anomaly_type === 'mix_shift' ? 'badge-mix-shift' : 'badge-navigation-edge';
-
+                                      a.anomaly_type === 'mix_shift' ? 'badge-mix-shift' : 'badge-navigation-edge';
+                    
                     // Forecast display - always show actual value, show prediction if available
                     const hasForecast = a.forecast_flag !== undefined && a.forecast_flag !== null;
                     const hasForecastValue = a.forecast_n !== undefined && a.forecast_n !== null && a.forecast_n > 0;
                     let forecastDisplay = '<span style="color: #757575;">N/A</span>';
-
+                    
                     if (hasForecast && hasForecastValue) {
                         if (a.forecast_flag) {
                             forecastDisplay = `<span style="color: #f44336; font-weight: bold;">⚠ Forecast Spike</span><br>
@@ -1590,17 +1600,17 @@
                         forecastDisplay = `<span style="color: #4caf50;">✓ Normal</span><br>
                             <small style="font-size: 0.75rem;">Actual: ${a.n || 0}</small>`;
                     }
-
+                    
                     // Generate "What Happened?" description
                     const whatHappened = generateWhatHappened(a, details.daily_spike_match || false);
-
+                    
                     // Sparkline
                     const sparkline = sparklineMap[idx] || { data: [], month: a.month };
                     const sparklineSVG = generateSparkline(
-                        sparkline.data.slice(-6),
+                        sparkline.data.slice(-6), 
                         sparkline.month === a.month
                     );
-
+                    
                     return `
                         <tr onclick="openExplainabilityPanel(${idx})">
                             <td>${(a.prev || '').substring(0, 30)}${(a.prev || '').length > 30 ? '...' : ''}</td>
@@ -1629,30 +1639,30 @@
                 tbody.innerHTML = `<tr><td colspan="8" class="loading" style="color: #f44336;">Error: ${error.message}</td></tr>`;
             }
         }
-
+        
         async function openExplainabilityPanel(idx) {
             const anomaly = currentAnomalies[idx];
             if (!anomaly) return;
-
+            
             const panel = document.getElementById('explainability-panel');
             const overlay = document.getElementById('overlay');
             const content = document.getElementById('panel-content');
-
+            
             content.innerHTML = '<div class="loading">Loading detailed explanation...</div>';
             panel.classList.add('open');
             overlay.classList.add('show');
-
+            
             // Check cache
             const cacheKey = anomaly.anomaly_id || idx;
             if (anomalyDetailsCache[cacheKey]) {
                 renderPanelContent(anomalyDetailsCache[cacheKey]);
                 return;
             }
-
+            
             try {
                 const response = await fetch(`/api/anomalies/${anomaly.anomaly_id || idx}`);
                 if (!response.ok) throw new Error('Failed to load details');
-
+                
                 const details = await response.json();
                 anomalyDetailsCache[cacheKey] = details;
                 renderPanelContent(details);
@@ -1661,40 +1671,40 @@
                 content.innerHTML = `<div class="loading" style="color: #f44336;">Error: ${error.message}</div>`;
             }
         }
-
+        
         function generateWhatHappened(anomaly, dailySpikeMatch) {
             const parts = [];
             const badges = [];
-
+            
             if (anomaly.anomaly_type === 'traffic_spike') {
                 badges.push('<span class="badge-inline traffic">Traffic spike</span>');
                 parts.push(`traffic ${(anomaly.deviation_ratio || 0).toFixed(1)}x above baseline`);
             }
-
+            
             if (anomaly.forecast_flag) {
                 badges.push('<span class="badge-inline forecast">Forecast spike</span>');
                 parts.push('exceeded forecast');
             }
-
+            
             if (anomaly.anomaly_type === 'mix_shift') {
                 badges.push('<span class="badge-inline mix">Mix shift</span>');
                 parts.push('referrer sources changed');
             }
-
+            
             if (dailySpikeMatch) {
                 badges.push('<span class="badge-inline daily">Daily spike confirmed</span>');
             } else if (anomaly.forecast_flag || anomaly.anomaly_type === 'traffic_spike') {
                 badges.push('<span class="badge-inline monthly">Monthly-only anomaly</span>');
             }
-
+            
             let text = badges.join(' ');
             if (parts.length > 0) {
                 text += ` (${parts.join(', ')})`;
             }
-
+            
             return text || 'Anomaly detected';
         }
-
+        
         function renderPanelContent(details) {
             const anomaly = details.anomaly;
             const signals = details.detection_signals || {};
@@ -1702,7 +1712,7 @@
             const referrerShares = details.referrer_shares || [];
             const dailyPageviews = details.daily_pageviews || [];
             const forecast = details.forecast_values || {};
-
+            
             // Generate summary sentence
             const month = anomaly.month || 'N/A';
             const prev = anomaly.prev || 'N/A';
@@ -1711,7 +1721,7 @@
             const confidence = (anomaly.confidence || 0).toFixed(2);
             const zScore = (anomaly.z_score || 0).toFixed(1);
             const forecastError = forecast.forecast_error || 0;
-
+            
             let summaryText = `In ${month}, traffic from "${prev}" to "${curr}" was ${deviationRatio}x higher than normal.`;
             if (forecast.forecast_flag) {
                 summaryText += ` Both the statistical detector and forecast model flagged this edge as anomalous,`;
@@ -1719,14 +1729,14 @@
                 summaryText += ` The statistical detector flagged this edge as anomalous,`;
             }
             summaryText += ` with a confidence of ${confidence}.`;
-
+            
             const mainBadges = [];
             if (forecast.forecast_flag) mainBadges.push('Forecast deviation');
             if (Math.abs(zScore) >= 3.5) mainBadges.push('High Z-score');
             if (details.top_referrer_flip) mainBadges.push('Top referrer flip');
-
+            
             const content = document.getElementById('panel-content');
-
+            
             content.innerHTML = `
                 <!-- Summary Section -->
                 <div class="panel-section" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(34, 211, 238, 0.1) 100%); border-left: 4px solid var(--accent-primary);">
@@ -1757,16 +1767,16 @@
                     <h3><span class="material-icons">assessment</span> Detection Signals Summary</h3>
                     <p style="font-size: 0.875rem; color: #757575; margin-bottom: 1rem;">How different detection methods evaluated this anomaly</p>
                     ${Object.entries(signals).map(([key, signal]) => {
-                const statusClass = signal.status || 'normal';
-                const statusEmoji = statusClass === 'anomaly' ? '🔴' : (statusClass === 'elevated' ? '🟡' : '🟢');
-                return `
+                        const statusClass = signal.status || 'normal';
+                        const statusEmoji = statusClass === 'anomaly' ? '🔴' : (statusClass === 'elevated' ? '🟡' : '🟢');
+                        return `
                             <div class="signal-item">
                                 <span class="signal-label">${signal.label || key}</span>
                                 <span class="signal-value">${signal.value.toFixed(2)} ${statusEmoji}</span>
                                 <span class="signal-status ${statusClass}"></span>
                             </div>
                         `;
-            }).join('')}
+                    }).join('')}
                 </div>
                 
                 <!-- Daily Trend Validation -->
@@ -1778,9 +1788,9 @@
                             <h4>Last 30 Days Daily Pageviews</h4>
                             <div id="daily-sparkline-chart" style="height: 150px;"></div>
                         </div>
-                        ${details.daily_spike_match ?
-                        '<span class="chip chip-danger">🔥 Real-Time Spike Match</span>' :
-                        '<span class="chip">❄ Monthly-only anomaly</span>'}
+                        ${details.daily_spike_match ? 
+                            '<span class="chip chip-danger">🔥 Real-Time Spike Match</span>' : 
+                            '<span class="chip">❄ Monthly-only anomaly</span>'}
                     ` : '<p style="color: #757575;">Daily pageview data not available</p>'}
                 </div>
                 
@@ -1819,25 +1829,25 @@
                     </div>
                 </div>
             `;
-
+            
             // Render charts
             if (dailyPageviews.length > 0) {
                 renderDailySparkline(dailyPageviews, anomaly.month);
             }
-
+            
             if (referrerShares.length > 0) {
                 renderReferrerMixChart(referrerShares, anomaly.month);
             }
-
+            
             if (timeseries.length > 0) {
                 renderTimeSeriesChart(timeseries, forecast, anomaly);
             }
         }
-
+        
         function renderDailySparkline(pageviews, anomalyMonth) {
             const dates = pageviews.map(p => p.date);
             const views = pageviews.map(p => p.views);
-
+            
             const trace = {
                 x: dates,
                 y: views,
@@ -1847,7 +1857,7 @@
                 line: { color: '#1976d2', width: 2 },
                 marker: { size: 4 }
             };
-
+            
             const layout = {
                 ...updatePlotlyTheme(),
                 title: { text: 'Daily Pageview Trend', font: { size: 14, color: 'var(--text-main)' } },
@@ -1858,17 +1868,17 @@
             };
             Plotly.newPlot('daily-sparkline-chart', [trace], layout, { responsive: true, displayModeBar: false });
         }
-
+        
         function renderReferrerMixChart(referrerShares, anomalyMonth) {
             const months = referrerShares.map(r => r.month);
             const referrerTypes = ['other-search', 'other-external', 'other-internal', 'link', 'direct', 'empty'];
-
+            
             const traces = referrerTypes.map(refType => {
                 const values = referrerShares.map(monthData => {
                     const ref = monthData.referrers.find(r => r.prev === refType);
                     return ref ? ref.proportion * 100 : 0;
                 });
-
+                
                 return {
                     x: months,
                     y: values,
@@ -1877,7 +1887,7 @@
                     stackgroup: 'one'
                 };
             });
-
+            
             const layout = {
                 ...updatePlotlyTheme(),
                 title: { text: 'Referrer Share Over Time', font: { size: 14, color: 'var(--text-main)' } },
@@ -1889,11 +1899,11 @@
             };
             Plotly.newPlot('referrer-mix-chart', traces, layout, { responsive: true, displayModeBar: false });
         }
-
+        
         function renderTimeSeriesChart(timeseries, forecast, anomaly) {
             const months = timeseries.map(t => t.month);
             const traffic = timeseries.map(t => t.n);
-
+            
             const traces = [{
                 x: months,
                 y: traffic,
@@ -1901,7 +1911,7 @@
                 name: 'Actual Traffic',
                 marker: { color: '#1976d2' }
             }];
-
+            
             // Add baseline
             if (anomaly.baseline_median) {
                 traces.push({
@@ -1913,7 +1923,7 @@
                     line: { color: '#757575', dash: 'dash', width: 2 }
                 });
             }
-
+            
             // Add forecast
             if (forecast.forecast_n) {
                 traces.push({
@@ -1925,7 +1935,7 @@
                     line: { color: '#ff9800', width: 2 }
                 });
             }
-
+            
             const layout = {
                 ...updatePlotlyTheme(),
                 title: { text: 'Traffic Over Time', font: { size: 14, color: 'var(--text-main)' } },
@@ -1938,17 +1948,17 @@
             };
             Plotly.newPlot('timeseries-chart', traces, layout, { responsive: true, displayModeBar: false });
         }
-
+        
         function closeExplainabilityPanel() {
             document.getElementById('explainability-panel').classList.remove('open');
             document.getElementById('overlay').classList.remove('show');
         }
-
+        
         async function loadOverviewChart() {
             try {
                 const response = await fetch('/api/anomalies/overview');
                 const data = await response.json();
-
+                
                 if (!data.months || data.months.length === 0) return;
 
                 // Format months to readable format (e.g., "2023-11" -> "Nov 2023")
@@ -1961,7 +1971,7 @@
                     }
                     return month;
                 });
-
+                
                 const traces = [
                     {
                         x: formattedMonths,
@@ -1971,6 +1981,15 @@
                         mode: 'lines+markers',
                         line: { color: '#1976d2', width: 2 },
                         marker: { size: 6, symbol: 'square' }
+                    },
+                    {
+                        x: formattedMonths,
+                        y: data.navigation_edge || [],
+                        name: 'Navigation Edge',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#9c27b0', width: 2 },
+                        marker: { size: 6, symbol: 'diamond' }
                     },
                     {
                         x: formattedMonths,
@@ -1991,7 +2010,7 @@
                         marker: { size: 6, symbol: 'circle' }
                     }
                 ];
-
+                
                 const layout = {
                     ...updatePlotlyTheme(),
                     title: { text: 'Monthly Anomaly Counts by Type', font: { size: 16, color: 'var(--text-main)' } },
@@ -2014,23 +2033,23 @@
                 console.error('Error loading overview chart:', error);
             }
         }
-
+        
         async function loadTopAnomalies() {
             try {
                 const response = await fetch('/api/anomalies/top');
                 const data = await response.json();
-
+                
                 const list = document.getElementById('top-anomalies-list');
                 if (!data || data.length === 0) {
                     list.innerHTML = '<p style="color: #757575;">No top anomalies available</p>';
                     return;
                 }
-
+                
                 list.innerHTML = data.map((a, idx) => {
                     const typeLabel = a.anomaly_type === 'traffic_spike' ? 'Traffic spike' :
-                        a.anomaly_type === 'mix_shift' ? 'Mix shift' :
-                            a.anomaly_type === 'navigation_edge' ? 'Navigation edge' : 'Anomaly';
-
+                                      a.anomaly_type === 'mix_shift' ? 'Mix shift' :
+                                      a.anomaly_type === 'navigation_edge' ? 'Navigation edge' : 'Anomaly';
+                    
                     return `
                         <div class="top-anomaly-item" onclick="scrollToAnomaly('${a.prev}', '${a.curr}')">
                             <div class="info">
@@ -2045,18 +2064,18 @@
                 document.getElementById('top-anomalies-list').innerHTML = '<p style="color: #757575;">Error loading top anomalies</p>';
             }
         }
-
+        
         async function loadInsights() {
             try {
                 const response = await fetch('/api/anomalies/insights');
                 const data = await response.json();
-
+                
                 const list = document.getElementById('insights-list');
                 if (!data.insights || data.insights.length === 0) {
                     list.innerHTML = '<p style="color: #757575;">No insights available</p>';
                     return;
                 }
-
+                
                 list.innerHTML = data.insights.map(insight => `
                     <div class="insight-item">
                         <span class="icon">💡</span>
@@ -2068,7 +2087,7 @@
                 document.getElementById('insights-list').innerHTML = '<p style="color: #757575;">Error loading insights</p>';
             }
         }
-
+        
         function scrollToAnomaly(prev, curr) {
             // Find and scroll to the anomaly in the table
             const rows = document.querySelectorAll('#anomalies-table tr');
@@ -2082,17 +2101,17 @@
                 }
             }
         }
-
+        
         function openHelpModal() {
             document.getElementById('help-modal').classList.add('open');
             document.getElementById('overlay').classList.add('show');
         }
-
+        
         function closeHelpModal() {
             document.getElementById('help-modal').classList.remove('open');
             document.getElementById('overlay').classList.remove('show');
         }
-
+        
         function toggleTheme() {
             const root = document.documentElement;
             const currentTheme = root.getAttribute('data-theme');
@@ -2102,20 +2121,20 @@
             btn.textContent = newTheme === 'dark' ? '🌙' : '☀';
             localStorage.setItem('theme', newTheme);
         }
-
+        
         // Initialize
         loadStats();
         loadAnomalies();
         loadOverviewChart();
         loadTopAnomalies();
         loadInsights();
-
+        
         // Load theme preference - FORCE DARK MODE
         // const savedTheme = localStorage.getItem('theme') || 'dark';
         const savedTheme = 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
         // document.getElementById('theme-toggle').textContent = savedTheme === 'dark' ? '🌙' : '☀';
-
+        
         // Add entrance animations
         document.addEventListener('DOMContentLoaded', () => {
             const cards = document.querySelectorAll('.stat-card, .hero-box, .overview-chart-card, .top-anomalies-card, .insights-card, .filters-card, .table-card');
@@ -2126,7 +2145,7 @@
                 }
             });
         });
-
+        
         // Update Plotly charts for dark theme
         function updatePlotlyTheme() {
             const theme = document.documentElement.getAttribute('data-theme');

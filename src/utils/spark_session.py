@@ -1,4 +1,6 @@
 """Spark session management."""
+import os
+import sys
 from pyspark.sql import SparkSession
 from typing import Dict, Optional
 from .config import load_config, get_spark_config
@@ -17,6 +19,13 @@ def create_spark_session(config: Optional[Dict] = None, app_name: Optional[str] 
     """
     if config is None:
         config = load_config()
+    
+    # Fix Python version mismatch: ensure driver and worker use same Python
+    python_exe = sys.executable
+    if 'PYSPARK_PYTHON' not in os.environ:
+        os.environ['PYSPARK_PYTHON'] = python_exe
+    if 'PYSPARK_DRIVER_PYTHON' not in os.environ:
+        os.environ['PYSPARK_DRIVER_PYTHON'] = python_exe
     
     spark_config = get_spark_config(config)
     

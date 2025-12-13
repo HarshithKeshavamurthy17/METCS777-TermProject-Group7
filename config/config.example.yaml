@@ -9,12 +9,16 @@ spark:
 data:
   clickstream_base_url: "https://dumps.wikimedia.org/other/clickstream/"
   months:
+    - "2023-06"
+    - "2023-07"
+    - "2023-08"
     - "2023-09"
     - "2023-10"
     - "2023-11"
     - "2023-12"
     - "2024-01"
     - "2024-02"
+    - "2024-03"
   raw_data_dir: "data/raw"
   processed_data_dir: "data/processed"
   anomalies_dir: "data/anomalies"
@@ -39,7 +43,7 @@ anomaly_detection:
     
 dashboard:
   host: "0.0.0.0"
-  port: 5000
+  port: 7000
   debug: false
   
 storage:
