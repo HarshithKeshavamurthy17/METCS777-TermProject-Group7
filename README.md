@@ -5,7 +5,7 @@ Harshith Keshavamurthy • Aryaman Jalali • Dirgha Jivani
 
 ---
 
-## What We Built
+## What We Built 
 
 We built a complete Big Data pipeline that analyzes Wikipedia clickstream data to find unusual navigation patterns. Think of it like this: millions of people navigate Wikipedia every day, clicking from one article to another. Our system processes all those clicks (tens of GB of data per month) and automatically identifies three types of anomalies:
 
