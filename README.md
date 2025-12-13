@@ -50,7 +50,7 @@ You should see something like `java version "11.0.x"` or `"1.8.0_xxx"`.
 
 ---
 
-## 🚀 COMPLETE SETUP & RUN GUIDE 
+## COMPLETE SETUP & RUN GUIDE 
 
 **This section walks through EVERY SINGLE STEP from scratch. Follow this if you want to run the entire project without missing anything.**
 
@@ -129,7 +129,7 @@ data/
 ...
 ```
 
-✅ **If you see these files, you're good to go!**
+**If you see these files, you're good to go!**
 
 **Step 1.6: Verify config file exists (optional)**
 ```bash
@@ -147,7 +147,7 @@ config.example.yaml
 > cp config/config.example.yaml config/config.yaml
 > ```
 
-✅ **Config files are ready!**
+**Config files are ready!**
 
 ---
 
@@ -187,7 +187,7 @@ Your terminal prompt should now start with `(venv)`. Example:
 (venv) user@computer:~/METCS777-TermProject-Group7$
 ```
 
-✅ **If you see (venv), it worked!**
+**If you see (venv), it worked!**
 
 **Step 2.3: Upgrade pip (optional but recommended)**
 ```bash
@@ -240,7 +240,7 @@ python -c "import flask, pandas, numpy; print('✓ All libraries loaded!')"
 ✓ All libraries loaded!
 ```
 
-✅ **If both print checkmarks, your environment is ready!**
+**If both print checkmarks, your environment is ready!**
 
 ---
 
@@ -289,7 +289,7 @@ anomaly_type=traffic_spike/
 
 ### Part 4: Start the Dashboard (2 minutes)
 
-> **⚠️ CRITICAL: DO NOT SKIP TO THIS STEP!**  
+> **CRITICAL: DO NOT SKIP TO THIS**  
 > You MUST complete Part 2 (virtual environment setup) first!  
 > If you skip it, you'll get "No module named 'pyspark'" errors.
 
@@ -352,7 +352,7 @@ WARNING: This is a development server...
 Press CTRL+C to quit
 ```
 
-✅ **If you see "Running on http://127.0.0.1:7000" (or 7001, 7002, etc.), it's working!**
+**If you see "Running on http://127.0.0.1:7000" (or 7001, 7002, etc.), it's working!**
 
 > **Note:** The dashboard automatically finds an available port. If 7000 is busy, it will try 7001, then 7002, etc. The exact port will be shown in the terminal output.
 
@@ -365,10 +365,10 @@ http://127.0.0.1:7000
 ```
 (Or whatever port number was shown in the terminal)
 
-**⚠️ Common mistakes to avoid:**
-- ❌ Don't use `https://` (it's `http://`)
-- ❌ Don't use `localhost` (Chrome may redirect to HTTPS)
-- ✅ Use exactly: `http://127.0.0.1:7000` (or the port shown in terminal)
+**Common mistakes to avoid:**
+- Don't use `https://` (it's `http://`)
+- Don't use `localhost` (Chrome may redirect to HTTPS)
+- Use exactly: `http://127.0.0.1:7000` (or the port shown in terminal)
 
 **You should see:**
 - A dark-themed dashboard
@@ -377,7 +377,7 @@ http://127.0.0.1:7000
 - Top anomalies section
 - Navigation Edges card showing 504 anomalies
 
-✅ **If you see the dashboard, CONGRATULATIONS! You're done!**
+**If you see the dashboard, it's done!**
 
 **To stop the dashboard:**
 Press `Ctrl+C` in the terminal
@@ -386,7 +386,7 @@ Press `Ctrl+C` in the terminal
 
 ### Part 5 (Optional): Download Fresh Data & Run Full Pipeline
 
-**⚠️ WARNING: This downloads ~10GB and takes 20-40 minutes. Only do this if you want to process your own data!**
+**WARNING: This downloads ~10GB and takes 20-40 minutes. Only do this if you want to process your own data!**
 
 **Step 5.1: Download Wikipedia clickstream data**
 
@@ -722,8 +722,8 @@ Here's how we organized everything:
 │       ├── month=2023-10/
 │       └── ...
 │
-├── run_pipeline.py         # ⭐ Run this to process data
-├── run_dashboard.py        # ⭐ Run this to see results
+├── run_pipeline.py         # Run this to process data
+├── run_dashboard.py        # Run this to see results
 └── requirements.txt        # All Python dependencies
 ```
 
@@ -752,7 +752,7 @@ Baseline median: 101
 Current month: 1,250
 Deviation: 1,250 / 101 = 12.4x
 Z-score: 87.3
-Result: ⚠️ ANOMALY (way above threshold)
+Result: ANOMALY (way above threshold)
 ```
 
 ### 2. Mix-Shift Detector (Traffic Source Changes)
@@ -780,7 +780,7 @@ Current month:
   - other-search: 15%
   - other: 5%
 
-Result: ⚠️ MIX-SHIFT (Main_Page became dominant)
+Result: MIX-SHIFT (Main_Page became dominant)
 Reason: Probably featured on Wikipedia's front page
 ```
 
@@ -799,7 +799,7 @@ Reason: Probably featured on Wikipedia's front page
 Edge: Obscure_Page → Another_Obscure_Page
 Features: [low_traffic, unusual_link_type, ...]
 Distance to nearest cluster: 4.69 (above 95th percentile threshold)
-Result: ⚠️ NAVIGATION EDGE ANOMALY
+Result: NAVIGATION EDGE ANOMALY
 ```
 
 ---
@@ -1067,8 +1067,8 @@ python run_dashboard.py
 # Go to http://127.0.0.1:7000 (or port shown in terminal - use HTTP not HTTPS!)
 ```
 
-That's it! You should now see 1,813 Wikipedia anomalies ready to explore. 🚀
+That's it! You should now see 1,813 Wikipedia anomalies.
 
 ---
 
-**Built with ☕ and 📊 by Team 7**
+**Built by Team 7**
